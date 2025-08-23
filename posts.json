@@ -1,0 +1,14 @@
+[
+  {
+    "title": "Hello World",
+    "slug": "hello-world",
+    "date": "2025-08-22",
+    "description": "Kickoff post for the minimal blog."
+  },
+  {
+    "title": "Second Post",
+    "slug": "second-post",
+    "date": "2025-08-22",
+    "description": "Another quick example post written in Markdown."
+  }
+]
