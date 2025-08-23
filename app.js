@@ -1,236 +1,98 @@
-/* Minimal blog engine with:
-   - Pagination (6 posts per page)
-   - Sidebar with Tags and Archives (years/months)
-   - Simple Markdown rendering
-*/
-
 const $ = (sel, el = document) => el.querySelector(sel);
 const app = $("#app");
 const sidebar = $("#sidebar");
 $("#year").textContent = new Date().getFullYear();
 
 const PER_PAGE = 6;
+const IMG_RE = /!\[[^\]]*\]\(([^)]+)\)/;
 
-const state = {
-  posts: [],
-  loaded: false
-};
+const state = { posts: [], loaded: false };
 
-function escapeHtml(str) {
-  return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
-
-/* Very small Markdown -> HTML converter covering common basics */
-function mdToHtml(md) {
-  md = md.replace(/\r\n?/g, "\n");
-  md = md.replace(/```([\s\S]*?)```/g, (m, code) => `<pre><code>${escapeHtml(code.trim())}</code></pre>`);
-  md = md.replace(/`([^`]+)`/g, (_, code) => `<code>${escapeHtml(code)}</code>`);
-  for (let i = 6; i >= 1; i--) {
-    const re = new RegExp(`^${"#".repeat(i)}\\s+(.+)$`, "gm");
-    md = md.replace(re, (_, txt) => `<h${i}>${txt.trim()}</h${i}>`);
-  }
-  md = md.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-  md = md.replace(/(^|[^\*])\*([^\*]+)\*(?!\*)/g, "$1<em>$2</em>");
-  md = md.replace(/\[([^\]]+)\]\(([^)]+)\)/g, `<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>`);
-  md = md.replace(/(?:^|\n)([-*] .+(?:\n[-*] .+)*)/g, (m) => {
-    const items = m.trim().split("\n").map(line => line.replace(/^[-*]\s+/, "")).map(s => `<li>${s}</li>`).join("");
-    return `\n<ul>${items}</ul>`;
-  });
-  md = md.replace(/(?:^|\n)((?:\d+\. .+(?:\n\d+\. .+)*))/g, (m) => {
-    const items = m.trim().split("\n").map(line => line.replace(/^\d+\.\s+/, "")).map(s => `<li>${s}</li>`).join("");
-    return `\n<ol>${items}</ol>`;
-  });
-  md = md.split(/\n{2,}/).map(block => {
-    if (/^\s*<(h\d|ul|ol|pre|blockquote)/.test(block)) return block;
-    if (/^\s*[-*]\s+/.test(block) || /^\s*\d+\.\s+/.test(block)) return block;
-    if (block.trim() === "") return "";
-    return `<p>${block.replace(/\n/g, "<br>")}</p>`;
-  }).join("\n");
-  md = md.replace(/(?:^|\n)&gt;\s?(.+)(?=\n|$)/g, "\n<blockquote>$1</blockquote>");
+function escapeHtml(str){return str.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function mdToHtml(md){
+  md=md.replace(/\r\n?/g,"\n");
+  md=md.replace(/```([\s\S]*?)```/g,(m,c)=>`<pre><code>${escapeHtml(c.trim())}</code></pre>`);
+  md=md.replace(/`([^`]+)`/g,(_,c)=>`<code>${escapeHtml(c)}</code>`);
+  for(let i=6;i>=1;i--){const re=new RegExp(`^${"#".repeat(i)}\\s+(.+)$`,"gm");md=md.replace(re,(_,t)=>`<h${i}>${t.trim()}</h${i}>`);}
+  md=md.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");
+  md=md.replace(/(^|[^\*])\*([^\*]+)\*(?!\*)/g,"$1<em>$2</em>");
+  md=md.replace(/\[([^\]]+)\]\(([^)]+)\)/g,`<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>`);
+  md=md.replace(/(?:^|\n)([-*] .+(?:\n[-*] .+)*)/g,m=>`\n<ul>${m.trim().split("\n").map(l=>`<li>${l.replace(/^[-*]\s+/,"")}</li>`).join("")}</ul>`);
+  md=md.replace(/(?:^|\n)((?:\d+\. .+(?:\n\d+\. .+)*))/g,m=>`\n<ol>${m.trim().split("\n").map(l=>`<li>${l.replace(/^\d+\.\s+/,"")}</li>`).join("")}</ol>`);
+  md=md.split(/\n{2,}/).map(b=>/^\s*<(h\d|ul|ol|pre|blockquote)/.test(b)||/^\s*[-*]\s+/.test(b)||/^\s*\d+\.\s+/.test(b)||b.trim()===""?b:`<p>${b.replace(/\n/g,"<br>")}</p>`).join("\n");
+  md=md.replace(/(?:^|\n)&gt;\s?(.+)(?=\n|$)/g,"\n<blockquote>$1</blockquote>");
   return md;
 }
+function extractFirstImage(md){const m=md.match(IMG_RE);return m?m[1]:null;}
+function setTitle(t){document.title=t?`${t} · My Minimal Blog`:"My Minimal Blog";}
+const uniq=a=>[...new Set(a)];
+function getFiltersFromURL(){const p=new URLSearchParams(location.search);return{post:p.get("post"),page:parseInt(p.get("page")||"1",10),tag:p.get("tag"),year:p.get("year"),month:p.get("month")};}
 
-function setTitle(t) {
-  document.title = t ? `${t} · jtgis` : "jtgis";
+function buildSidebar(posts){
+  const allTags=uniq(posts.flatMap(p=>Array.isArray(p.tags)?p.tags:[])).sort((a,b)=>a.localeCompare(b));
+  const archiveMap={};
+  posts.forEach(p=>{const d=new Date(p.date),y=String(d.getFullYear()),m=String(d.getMonth()+1).padStart(2,"0");(archiveMap[y]??=new Set()).add(m);});
+  const years=Object.keys(archiveMap).sort((a,b)=>b.localeCompare(a));
+  const tagHtml=`<h3>Tags</h3>`+(allTags.length?`<ul>${allTags.map(t=>`<li><a href="?tag=${encodeURIComponent(t)}">${t}</a></li>`).join("")}</ul>`:`<div class="muted">No tags yet.</div>`);
+  const monthNames={"01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"May","06":"Jun","07":"Jul","08":"Aug","09":"Sep","10":"Oct","11":"Nov","12":"Dec"};
+  const archiveHtml=`<h3>Archives</h3>`+(years.length?`<ul>${years.map(y=>{const months=[...archiveMap[y]].sort((a,b)=>b.localeCompare(a));const monthLinks=months.map(m=>`<a href="?year=${y}&month=${m}">${monthNames[m]} ${y}</a>`).join(" · ");return `<li><a href="?year=${y}">${y}</a>${months.length?`<div>${monthLinks}</div>`:""}</li>`;}).join("")}</ul>`:`<div class="muted">No archives yet.</div>`);
+  sidebar.innerHTML=`${tagHtml}${archiveHtml}`;
+  sidebar.querySelectorAll('a[href^="?"]').forEach(a=>a.addEventListener("click",e=>{e.preventDefault();const u=new URL(a.href);history.pushState({}, "", u);route();}));
 }
 
-function uniq(arr) {
-  return [...new Set(arr)];
-}
-
-function getFiltersFromURL() {
-  const params = new URLSearchParams(location.search);
-  return {
-    post: params.get("post"),
-    page: parseInt(params.get("page") || "1", 10),
-    tag: params.get("tag"),
-    year: params.get("year"),
-    month: params.get("month")
-  };
-}
-
-function buildSidebar(posts) {
-  // Tags
-  const allTags = uniq(posts.flatMap(p => Array.isArray(p.tags) ? p.tags : []))
-    .sort((a,b) => a.localeCompare(b));
-
-  // Archives: year -> months
-  const archiveMap = {};
-  posts.forEach(p => {
-    const d = new Date(p.date);
-    const y = String(d.getFullYear());
-    const m = String(d.getMonth() + 1).padStart(2, "0"); // 01..12
-    if (!archiveMap[y]) archiveMap[y] = new Set();
-    archiveMap[y].add(m);
-  });
-  const years = Object.keys(archiveMap).sort((a,b) => b.localeCompare(a));
-
-  const tagHtml = allTags.length
-    ? `<h3>Tags</h3><ul>${allTags.map(t => `<li><a href="?tag=${encodeURIComponent(t)}">${t}</a></li>`).join("")}</ul>`
-    : "";
-
-  const archiveHtml = years.length
-    ? `<h3>Archives</h3><ul>${
-        years.map(y => {
-          const months = [...archiveMap[y]].sort((a,b) => b.localeCompare(a));
-          const monthNames = { "01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"May","06":"Jun","07":"Jul","08":"Aug","09":"Sep","10":"Oct","11":"Nov","12":"Dec" };
-          const monthLinks = months.map(m => `<a href="?year=${y}&month=${m}">${monthNames[m]} ${y}</a>`).join(" · ");
-          return `<li><a href="?year=${y}">${y}</a>${months.length ? `<div>${monthLinks}</div>` : ""}</li>`;
-        }).join("")
-      }</ul>`
-    : "";
-
-  sidebar.innerHTML = `${tagHtml}${archiveHtml}`;
-
-  // Client-side link handling for sidebar
-  sidebar.querySelectorAll('a[href^="?"]').forEach(a => {
-    a.addEventListener("click", (e) => {
-      e.preventDefault();
-      const url = new URL(a.href);
-      history.pushState({}, "", url);
-      route();
-    });
-  });
-}
-
-function filterPosts({ tag, year, month }) {
-  let items = state.posts.slice();
-  if (tag) {
-    items = items.filter(p => Array.isArray(p.tags) && p.tags.includes(tag));
-  }
-  if (year) {
-    items = items.filter(p => new Date(p.date).getFullYear() === Number(year));
-  }
-  if (month) {
-    items = items.filter(p => (new Date(p.date).getMonth()+1) === Number(month));
-  }
+function filterPosts({tag,year,month}){
+  let items=state.posts.slice();
+  if(tag) items=items.filter(p=>Array.isArray(p.tags)&&p.tags.includes(tag));
+  if(year) items=items.filter(p=>new Date(p.date).getFullYear()===Number(year));
+  if(month) items=items.filter(p=>(new Date(p.date).getMonth()+1)===Number(month));
   return items;
 }
+function paginate(items,page){const total=items.length,pages=Math.max(1,Math.ceil(total/PER_PAGE)),current=Math.min(Math.max(1,page),pages),start=(current-1)*PER_PAGE;return{slice:items.slice(start,start+PER_PAGE),total,pages,current};}
 
-function paginate(items, page) {
-  const total = items.length;
-  const pages = Math.max(1, Math.ceil(total / PER_PAGE));
-  const current = Math.min(Math.max(1, page), pages);
-  const start = (current - 1) * PER_PAGE;
-  const slice = items.slice(start, start + PER_PAGE);
-  return { slice, total, pages, current };
-}
-
-function renderList(filters) {
+async function renderList(filters){
   setTitle("");
-  const filtered = filterPosts(filters).sort((a,b) => (a.date < b.date ? 1 : -1));
-  const { slice, total, pages, current } = paginate(filtered, filters.page || 1);
-
-  const list = slice.map(p => {
-    const date = new Date(p.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-    const tags = (p.tags || []).map(t => `<span class="tag">#<a href="?tag=${encodeURIComponent(t)}">${t}</a></span>`).join(" ");
+  const filtered=filterPosts(filters).sort((a,b)=>(a.date<b.date?1:-1));
+  const {slice,pages,current}=paginate(filtered,filters.page||1);
+  const withImgs=await Promise.all(slice.map(async p=>{try{const r=await fetch(`posts/${p.slug}.md`);const md=await r.text();return {...p,image:extractFirstImage(md)};}catch{return {...p,image:null};}}));
+  const list=withImgs.map(p=>{
+    const date=new Date(p.date).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+    const tags=(p.tags||[]).map(t=>`<span class="tag">#<a href="?tag=${encodeURIComponent(t)}">${t}</a></span>`).join(" ");
+    const img=p.image?`<div><img src="${p.image}" alt="" style="max-width:100%;margin:0.5rem 0;"></div>`:"";
     return `<li>
       <h2 class="post-title"><a href="?post=${encodeURIComponent(p.slug)}">${p.title}</a></h2>
-      <div class="post-meta">${date}${tags ? ` · <span class="tags">${tags}</span>` : ""}</div>
-      ${p.description ? `<div class="post-desc">${p.description}</div>` : ""}
+      <div class="post-meta">${date}${tags?` · <span class="tags">${tags}</span>`:""}</div>
+      ${img}
+      ${p.description?`<div class="post-desc">${p.description}</div>`:""}
     </li>`;
   }).join("");
-
-  const pageLinks = [];
-  if (pages > 1) {
-    const makeLink = (n, label = n) => {
-      const params = new URLSearchParams(location.search);
-      params.delete("post");
-      params.set("page", String(n));
-      return `<a href="?${params.toString()}">${label}</a>`;
-    };
-    pageLinks.push(current > 1 ? makeLink(current - 1, "« Prev") : `<span>« Prev</span>`);
-    for (let n = 1; n <= pages; n++) {
-      if (n === current) pageLinks.push(`<span class="current">${n}</span>`);
-      else pageLinks.push(makeLink(n));
-    }
-    pageLinks.push(current < pages ? makeLink(current + 1, "Next »") : `<span>Next »</span>`);
+  const pageLinks=[];
+  if(pages>1){
+    const make=(n,l=n)=>{const q=new URLSearchParams(location.search);q.delete("post");q.set("page",String(n));return `<a href="?${q.toString()}">${l}</a>`;};
+    pageLinks.push(current>1?make(current-1,"« Prev"):`<span>« Prev</span>`);
+    for(let n=1;n<=pages;n++) pageLinks.push(n===current?`<span class="current">${n}</span>`:make(n));
+    pageLinks.push(current<pages?make(current+1,"Next »"):`<span>Next »</span>`);
   }
-
-  app.innerHTML = `<section>
-    ${filtered.length ? `<ul class="post-list">${list}</ul>` : `<p>No posts found.</p>`}
-    <div class="pagination">${pageLinks.join("")}</div>
-  </section>`;
-
-  // Bind list links
-  app.querySelectorAll('a[href^="?"]').forEach(a => {
-    a.addEventListener("click", (e) => {
-      e.preventDefault();
-      const url = new URL(a.href);
-      history.pushState({}, "", url);
-      route();
-    });
-  });
+  app.innerHTML=`<section>${filtered.length?`<ul class="post-list">${list}</ul>`:`<p>No posts found.</p>`}<div class="pagination">${pageLinks.join("")}</div></section>`;
+  app.querySelectorAll('a[href^="?"]').forEach(a=>a.addEventListener("click",e=>{e.preventDefault();const u=new URL(a.href);history.pushState({}, "", u);route();}));
 }
 
-async function renderPost(slug) {
-  const post = state.posts.find(p => p.slug === slug);
-  if (!post) {
-    app.innerHTML = `<p>Post not found.</p><p><a class="back-link" href="./">← Back to list</a></p>`;
-    return;
-  }
+async function renderPost(slug){
+  const post=state.posts.find(p=>p.slug===slug);
+  if(!post){app.innerHTML=`<p>Post not found.</p><p><a class="back-link" href="./">← Back to list</a></p>`;return;}
   setTitle(post.title);
-  app.innerHTML = `<p><a class="back-link" href="./">← Back to list</a></p>
-  <article>
-    <h1>${post.title}</h1>
-    <div class="post-meta">${new Date(post.date).toLocaleDateString()}</div>
-    <div id="post-body">Loading…</div>
-  </article>`;
-  try {
-    const res = await fetch(`posts/${post.slug}.md`);
-    const md = await res.text();
-    $("#post-body").innerHTML = mdToHtml(md);
-    $(".back-link").addEventListener("click", (e) => {
-      e.preventDefault();
-      history.pushState({}, "", "./");
-      route();
-    });
-  } catch (err) {
-    $("#post-body").textContent = "Couldn't load this post.";
-  }
+  app.innerHTML=`<p><a class="back-link" href="./">← Back to list</a></p><article><h1>${post.title}</h1><div class="post-meta">${new Date(post.date).toLocaleDateString()}</div><div id="post-body">Loading…</div></article>`;
+  try{const r=await fetch(`posts/${post.slug}.md`);const md=await r.text();$("#post-body").innerHTML=mdToHtml(md);$(".back-link").addEventListener("click",e=>{e.preventDefault();history.pushState({}, "", "./");route();});}
+  catch{$("#post-body").textContent="Couldn't load this post.";}
 }
 
-function route() {
-  const filters = getFiltersFromURL();
-  buildSidebar(state.posts);
-  if (filters.post) {
-    renderPost(filters.post);
-  } else {
-    renderList(filters);
-  }
-}
+function route(){const f=getFiltersFromURL();buildSidebar(state.posts);if(f.post)renderPost(f.post);else renderList(f);}
 
-async function boot() {
-  try {
-    const res = await fetch("posts.json", { cache: "no-store" });
-    if (!res.ok) throw new Error("posts.json not found");
-    state.posts = await res.json();
-    state.loaded = true;
-    route();
-  } catch (e) {
-    app.innerHTML = `<p>Couldn't load posts.json. Make sure it exists in the site root.</p>`;
-  }
+async function boot(){
+  const inline=document.getElementById("posts-data");
+  if(inline&&inline.textContent.trim()){try{state.posts=JSON.parse(inline.textContent);state.loaded=true;route();
+    try{const r=await fetch("posts.json",{cache:"no-store"});if(r.ok){state.posts=await r.json();route();}}catch{};return;}catch{}}
+  try{const r=await fetch("posts.json",{cache:"no-store"});if(!r.ok) throw 0; state.posts=await r.json();state.loaded=true;route();}
+  catch{app.innerHTML=`<p>Couldn't load posts.json.</p>`;sidebar.innerHTML=`<h3>Tags</h3><div class="muted">Unavailable</div><h3>Archives</h3><div class="muted">Unavailable</div>`;}
 }
-
 window.addEventListener("popstate", route);
 boot();
