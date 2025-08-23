@@ -67,6 +67,8 @@ article blockquote { border-left: 4px solid var(--border); margin: 1rem 0; paddi
 }
 .pagination .current { background: #fafafa; }
 
+.muted { color: var(--muted); }
+
 @media (min-width: 900px) {
   .site-header .container, .site-footer .container { display: flex; align-items: baseline; justify-content: space-between; }
   .site-nav { margin-top: 0; }
