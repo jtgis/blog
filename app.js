@@ -11,15 +11,30 @@ const state = { posts: [], loaded: false };
 function escapeHtml(str){return str.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function mdToHtml(md){
   md=md.replace(/\r\n?/g,"\n");
+  // Fenced code
   md=md.replace(/```([\s\S]*?)```/g,(m,c)=>`<pre><code>${escapeHtml(c.trim())}</code></pre>`);
+  // Inline code
   md=md.replace(/`([^`]+)`/g,(_,c)=>`<code>${escapeHtml(c)}</code>`);
+  // Images ![alt](src)
+  md=md.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,(m,alt,src)=>{
+    const isAbsolute=/^(https?:)?\/\//i.test(src)||src.startsWith("/");
+    const fixed=isAbsolute?src:`posts/${src}`;
+    return `<img src="${fixed}" alt="${escapeHtml(alt||"")}" style="max-width:100%;">`;
+  });
+  // Headings
   for(let i=6;i>=1;i--){const re=new RegExp(`^${"#".repeat(i)}\\s+(.+)$`,"gm");md=md.replace(re,(_,t)=>`<h${i}>${t.trim()}</h${i}>`);}
+  // Bold / Italic
   md=md.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");
   md=md.replace(/(^|[^\*])\*([^\*]+)\*(?!\*)/g,"$1<em>$2</em>");
+  // Links
   md=md.replace(/\[([^\]]+)\]\(([^)]+)\)/g,`<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>`);
+  // Unordered lists
   md=md.replace(/(?:^|\n)([-*] .+(?:\n[-*] .+)*)/g,m=>`\n<ul>${m.trim().split("\n").map(l=>`<li>${l.replace(/^[-*]\s+/,"")}</li>`).join("")}</ul>`);
+  // Ordered lists
   md=md.replace(/(?:^|\n)((?:\d+\. .+(?:\n\d+\. .+)*))/g,m=>`\n<ol>${m.trim().split("\n").map(l=>`<li>${l.replace(/^\d+\.\s+/,"")}</li>`).join("")}</ol>`);
-  md=md.split(/\n{2,}/).map(b=>/^\s*<(h\d|ul|ol|pre|blockquote)/.test(b)||/^\s*[-*]\s+/.test(b)||/^\s*\d+\.\s+/.test(b)||b.trim()===""?b:`<p>${b.replace(/\n/g,"<br>")}</p>`).join("\n");
+  // Paragraphs
+  md=md.split(/\n{2,}/).map(b=>/^\s*<(h\d|ul|ol|pre|blockquote|img)/.test(b)||/^\s*[-*]\s+/.test(b)||/^\s*\d+\.\s+/.test(b)||b.trim()===""?b:`<p>${b.replace(/\n/g,"<br>")}</p>`).join("\n");
+  // Blockquotes
   md=md.replace(/(?:^|\n)&gt;\s?(.+)(?=\n|$)/g,"\n<blockquote>$1</blockquote>");
   return md;
 }
@@ -57,7 +72,9 @@ async function renderList(filters){
   const list=withImgs.map(p=>{
     const date=new Date(p.date).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
     const tags=(p.tags||[]).map(t=>`<span class="tag">#<a href="?tag=${encodeURIComponent(t)}">${t}</a></span>`).join(" ");
-    const img=p.image?`<div><img src="${p.image}" alt="" style="max-width:100%;margin:0.5rem 0;"></div>`:"";
+    const needsPrefix = p.image && !/^https?:\/\//i.test(p.image) && !p.image.startsWith("/") && !p.image.startsWith("posts/");
+    const imgSrc = needsPrefix ? `posts/${p.image}` : p.image;
+    const img=imgSrc?`<div><img src="${imgSrc}" alt="" style="max-width:100%;margin:0.5rem 0;"></div>`:"";
     return `<li>
       <h2 class="post-title"><a href="?post=${encodeURIComponent(p.slug)}">${p.title}</a></h2>
       <div class="post-meta">${date}${tags?` · <span class="tags">${tags}</span>`:""}</div>
