@@ -51,7 +51,7 @@ function mdToHtml(md) {
 }
 
 function setTitle(t) {
-  document.title = t ? `${t} · My Minimal Blog` : "My Minimal Blog";
+  document.title = t ? `${t} · jtgis` : "jtgis";
 }
 
 function uniq(arr) {
