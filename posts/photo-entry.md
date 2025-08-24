@@ -1,7 +1,7 @@
 # Photo Entry
 
-Here's a post that contains an image.
+This post includes an image:
 
-![Sample Photo](https://vancouverislandbucketlist.com/wp-content/uploads/2024/09/Victoria-BC-Area-Map-where-to-go-when-visiting.webp)
+![Sample Photo](sample.jpg)
 
-Looks good on the homepage preview too.
+It should appear here and as the homepage preview.

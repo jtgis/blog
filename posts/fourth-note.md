@@ -1,3 +1,3 @@
 # Fourth Note
 
-A short note in **June 2025**.
+Short note.
