@@ -1,3 +1,0 @@
-# Fifth Entry
-
-Another one.
