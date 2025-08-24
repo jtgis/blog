@@ -3,10 +3,11 @@
 - [x] Task 1
 - [ ] Task 2
 
-| Col | Val |
-| :-- | --: |
-| A   |  1  |
-| B   |  2  |
+| Name  | Score | Notes |
+| :---- | ----: | :---: |
+| Alice | 10    | ok    |
+| Bob   |  7    | meh   |
+| Carol | 12    | great |
 
 Autolink: https://example.com
 
