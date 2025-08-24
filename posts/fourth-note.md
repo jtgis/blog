@@ -1,3 +1,0 @@
-# Fourth Note
-
-Short note.
