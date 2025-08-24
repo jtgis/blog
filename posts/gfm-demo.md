@@ -1,10 +1,15 @@
 # GFM Demo
 
-A GitHub-style table that should render now, even without a blank line after it:
+- [x] Task 1
+- [ ] Task 2
 
-| Name  | Score | Notes |
-| :---- | ----: | :---: |
-| Alice | 10    | ok    |
-| Bob   |  7    | meh   |
-| Carol | 12    | great |
-Then some text immediately after the table (no blank line).
+| Col | Val |
+| :-- | --: |
+| A   |  1  |
+| B   |  2  |
+
+Autolink: https://example.com
+
+```js
+console.log('hi');
+```
