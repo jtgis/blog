@@ -1,0 +1,3 @@
+# Seventh Story
+
+Another entry.
