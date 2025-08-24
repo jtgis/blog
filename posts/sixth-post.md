@@ -1,3 +1,0 @@
-# Sixth Post
-
-Another entry.
