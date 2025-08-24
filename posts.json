@@ -8,4 +8,70 @@
       "general",
       "intro"
     ]
-  }]
+  },
+  {
+    "title": "Photo Entry",
+    "slug": "photo-entry",
+    "date": "2025-07-03",
+    "description": "Contains an image.",
+    "tags": [
+      "photos",
+      "demo"
+    ]
+  },
+  {
+    "title": "GFM Demo",
+    "slug": "gfm-demo",
+    "date": "2025-07-01",
+    "description": "Tables, tasks, strikethrough, autolinks, code.",
+    "tags": [
+      "gfm",
+      "demo"
+    ]
+  },
+  {
+    "title": "Second Post",
+    "slug": "second-post",
+    "date": "2025-06-22",
+    "description": "Another example.",
+    "tags": [
+      "general"
+    ]
+  },
+  {
+    "title": "Fourth Note",
+    "slug": "fourth-note",
+    "date": "2025-06-02",
+    "description": "Smaller entry.",
+    "tags": [
+      "note"
+    ]
+  },
+  {
+    "title": "Fifth Entry",
+    "slug": "fifth-entry",
+    "date": "2025-05-15",
+    "description": "Another one for paging.",
+    "tags": [
+      "general"
+    ]
+  },
+  {
+    "title": "Sixth Post",
+    "slug": "sixth-post",
+    "date": "2025-04-01",
+    "description": "Fills the first page.",
+    "tags": [
+      "update"
+    ]
+  },
+  {
+    "title": "Seventh Story",
+    "slug": "seventh-story",
+    "date": "2025-03-20",
+    "description": "Triggers page 2.",
+    "tags": [
+      "story"
+    ]
+  }
+]
