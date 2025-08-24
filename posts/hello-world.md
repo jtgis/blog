@@ -1,5 +1,5 @@
 # Hello World
 
-Welcome to **jtgis** blog.
+I guess this is how these things usually start. 
 
-This is plain text with *emphasis* and **bold**.
+Welcome!
