@@ -10,22 +10,22 @@
     ]
   },
   {
+    "title": "GFM Demo",
+    "slug": "gfm-demo",
+    "date": "2025-07-15",
+    "description": "Tables, tasks, strikethrough, autolinks, code.",
+    "tags": [
+      "gfm",
+      "demo"
+    ]
+  },
+  {
     "title": "Photo Entry",
     "slug": "photo-entry",
     "date": "2025-07-03",
     "description": "Contains an image.",
     "tags": [
       "photos",
-      "demo"
-    ]
-  },
-  {
-    "title": "GFM Demo",
-    "slug": "gfm-demo",
-    "date": "2025-07-01",
-    "description": "Tables, tasks, strikethrough, autolinks, code.",
-    "tags": [
-      "gfm",
       "demo"
     ]
   },
