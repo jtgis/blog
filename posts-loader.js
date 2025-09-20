@@ -1,76 +1,68 @@
-// Posts loader with manifest file - GitHub Pages optimized
+// GitHub API posts loader - no CORS issues
 
 async function loadPostsFromGitHub() {
     try {
-        console.log('Loading posts with manifest...');
-        console.log('Current domain:', window.location.hostname);
+        console.log('Loading posts via GitHub API...');
         
-        // For GitHub Pages with custom domain, prioritize GitHub raw URLs
-        const cacheBuster = '?t=' + Date.now();
-        const manifestPaths = [
-            `https://raw.githubusercontent.com/jtgis/blog/main/posts/manifest.json${cacheBuster}`,
-            `posts/manifest.json${cacheBuster}`,
-            `./posts/manifest.json${cacheBuster}`,
-            `/posts/manifest.json${cacheBuster}`,
-            `https://jtgis.ca/posts/manifest.json${cacheBuster}`
-        ];
+        // GitHub API for repository contents
+        const apiUrl = 'https://api.github.com/repos/jtgis/blog/contents/posts';
+        console.log('API URL:', apiUrl);
         
-        let manifest = null;
-        let useGitHubRaw = false;
+        const response = await fetch(apiUrl);
+        console.log('API response status:', response.status);
         
-        for (const path of manifestPaths) {
-            try {
-                console.log(`Trying manifest path: ${path}`);
-                const response = await fetch(path, { 
-                    cache: 'no-cache',
-                    headers: {
-                        'Cache-Control': 'no-cache'
-                    }
-                });
-                console.log(`Manifest ${path} response:`, response.status);
-                
-                if (response.ok) {
-                    const manifestText = await response.text();
-                    console.log('Raw manifest content:', manifestText);
-                    
-                    manifest = JSON.parse(manifestText);
-                    console.log('Parsed manifest:', manifest);
-                    
-                    // If we successfully loaded from GitHub raw, use that for posts too
-                    useGitHubRaw = path.includes('raw.githubusercontent.com');
-                    console.log('Will use GitHub raw for posts:', useGitHubRaw);
-                    break;
-                }
-            } catch (error) {
-                console.log(`Failed to load manifest from ${path}:`, error.message);
-            }
+        if (!response.ok) {
+            throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
         }
         
-        if (!manifest || !manifest.files || !Array.isArray(manifest.files)) {
-            throw new Error('Could not load valid manifest');
-        }
+        const files = await response.json();
+        console.log('Files from API:', files.map(f => f.name));
         
-        console.log('Manifest files:', manifest.files);
+        // Filter for .md files only
+        const mdFiles = files.filter(file => 
+            file.name.endsWith('.md') && file.type === 'file'
+        );
+        console.log('Markdown files:', mdFiles.map(f => f.name));
         
-        if (manifest.files.length === 0) {
-            console.log('No files in manifest');
+        if (mdFiles.length === 0) {
+            console.log('No markdown files found');
             return [];
         }
         
-        // Load each post
+        // Load content for each markdown file
         const posts = await Promise.all(
-            manifest.files.map(async (filename) => {
-                return await loadSinglePostFile(filename, useGitHubRaw);
+            mdFiles.map(async (file) => {
+                try {
+                    console.log(`Loading content for: ${file.name}`);
+                    console.log(`Download URL: ${file.download_url}`);
+                    
+                    const contentResponse = await fetch(file.download_url);
+                    if (!contentResponse.ok) {
+                        console.error(`Failed to load ${file.name}: ${contentResponse.status}`);
+                        return null;
+                    }
+                    
+                    const content = await contentResponse.text();
+                    console.log(`✅ Loaded ${file.name} (${content.length} chars)`);
+                    
+                    return parseMarkdownPost(content, file.name);
+                } catch (error) {
+                    console.error(`Error loading ${file.name}:`, error);
+                    return null;
+                }
             })
         );
         
-        const validPosts = posts.filter(post => post !== null).sort((a, b) => new Date(b.date) - new Date(a.date));
-        console.log(`Successfully loaded ${validPosts.length} posts`);
+        const validPosts = posts.filter(post => post !== null)
+                               .sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        console.log(`✅ Successfully loaded ${validPosts.length} posts`);
+        console.log('Posts:', validPosts.map(p => ({ title: p.title, date: p.date })));
         
         return validPosts;
         
     } catch (error) {
-        console.error('Error in loadPostsFromGitHub:', error);
+        console.error('GitHub API loading failed:', error);
         return [];
     }
 }
