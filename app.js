@@ -29,6 +29,19 @@ const samplePosts = [
     // Add more sample posts as needed
 ];
 
+// Handle URL parameters for filtering
+function handleUrlParameters() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tagParam = urlParams.get('tag');
+    const monthParam = urlParams.get('month');
+    
+    if (tagParam) {
+        filterByTag(tagParam);
+    } else if (monthParam) {
+        filterByMonth(monthParam);
+    }
+}
+
 function loadPosts(page = 1) {
     currentPage = page;
     const postsToDisplay = currentFilter ? filteredPosts : allPosts;
@@ -170,5 +183,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     const githubPosts = await loadPostsFromGitHub();
     allPosts = githubPosts.length > 0 ? githubPosts : samplePosts;
     console.log('Loaded posts:', allPosts);
+    
+    // Handle URL parameters
+    handleUrlParameters();
+    
     loadPosts(1);
 });

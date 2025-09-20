@@ -11,26 +11,31 @@ async function loadSinglePost() {
     }
     
     // Load all posts
-    const githubPosts = await loadPostsFromGitHub();
-    allPosts = githubPosts.length > 0 ? githubPosts : [];
-    
-    // Find the specific post
-    const post = allPosts.find(p => p.slug === slug);
-    
-    if (!post) {
-        showError('Post not found');
-        return;
+    try {
+        const githubPosts = await loadPostsFromGitHub();
+        allPosts = githubPosts.length > 0 ? githubPosts : [];
+        
+        // Find the specific post
+        const post = allPosts.find(p => p.slug === slug);
+        
+        if (!post) {
+            showError(`Post "${slug}" not found`);
+            return;
+        }
+        
+        displayPost(post);
+        updateSidebar();
+    } catch (error) {
+        console.error('Error loading posts:', error);
+        showError('Failed to load posts. Please try again later.');
     }
-    
-    displayPost(post);
-    updateSidebar();
 }
 
 function displayPost(post) {
     document.getElementById('post-title').textContent = `${post.title} - jtgis`;
     
     const imageHtml = post.image ? 
-        `<img src="${post.image}" alt="${post.title}" style="max-width: 100%; height: auto; margin-bottom: 20px; display: block;">` : '';
+        `<img src="${post.image}" alt="${post.title}" style="max-width: 100%; height: auto; margin-bottom: 20px; display: block; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">` : '';
     
     const postContainer = document.getElementById('post-container');
     postContainer.innerHTML = `
@@ -44,7 +49,7 @@ function displayPost(post) {
                 ${post.content}
             </div>
             <div class="post-tags" style="margin-top: 20px;">
-                ${post.tags.map(tag => `<a href="index.html#tag-${tag}" class="tag">${tag}</a>`).join('')}
+                ${post.tags.map(tag => `<a href="index.html?tag=${tag}" class="tag">${tag}</a>`).join('')}
             </div>
         </div>
     `;
@@ -77,15 +82,19 @@ function updateSidebar() {
 
 function updateTags() {
     const tagsContainer = document.getElementById('tags-container');
+    if (!tagsContainer) return;
+    
     const allTags = [...new Set(allPosts.flatMap(post => post.tags))];
     
     tagsContainer.innerHTML = allTags.map(tag => 
-        `<a href="index.html#tag-${tag}" class="tag">${tag}</a>`
+        `<a href="index.html?tag=${tag}" class="tag">${tag}</a>`
     ).join('');
 }
 
 function updateArchives() {
     const archivesContainer = document.getElementById('archives-container');
+    if (!archivesContainer) return;
+    
     const months = [...new Set(allPosts.map(post => {
         const date = new Date(post.date);
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -94,7 +103,7 @@ function updateArchives() {
     archivesContainer.innerHTML = months.map(month => {
         const [year, monthNum] = month.split('-');
         const monthName = new Date(year, monthNum - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        return `<div><a href="index.html#month-${month}" style="color: #333; text-decoration: none;">${monthName}</a></div>`;
+        return `<div><a href="index.html?month=${month}" style="color: #333; text-decoration: none;">${monthName}</a></div>`;
     }).join('');
 }
 
