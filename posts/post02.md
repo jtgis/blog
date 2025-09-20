@@ -1,9 +1,9 @@
 ---
-title: "Create Service Usage by Users Report in ArcGIS Enterprise 11.5"
+title: "Creating a User Service Usage Report in ArcGIS Enterprise"
 date: "2025-07-22"
-tags: ["video","arcgis enterprise"]
+tags: ["video","gis","tutorial"]
 embed: "https://www.youtube.com/watch?v=ANDD9huDCC4"
 embedType: "youtube"
 ---
 
-Do you need more granular data on who is using what services and how often in your ArcGIS Enterprise Deployment? The new ServiceUsageByUsers reporting metric in 11.5 has you covered.
+I made a short tutorial on how to enable and use the service usage by user report.
