@@ -20,7 +20,34 @@
         <main class="posts-section">
             <h2>Blog Admin</h2>
             
-                <h4>Add Post:</h4>
+            <div class="post">
+                <h3>Blog Statistics</h3>
+                <div id="blog-stats">
+                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                        <tr>
+                            <td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><strong>Total Posts:</strong></td>
+                            <td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;" id="total-posts">Loading...</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><strong>Total Tags:</strong></td>
+                            <td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;" id="total-tags">Loading...</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><strong>Longest Post:</strong></td>
+                            <td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;" id="longest-post">Loading...</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; vertical-align: top;"><strong>All Tags:</strong></td>
+                            <td style="padding: 8px 0;" id="all-tags">Loading...</td>
+                        </tr>
+                    </table>
+                </div>
+                <h4>All Posts:</h4>
+                <div id="current-posts">
+                    Loading current posts...
+                </div>
+                <div class="post">
+                <h3>Create New Post</h3>
                 <p>
                     <a href="https://github.com/jtgis/blog/new/main/posts" 
                        target="_blank" 
@@ -29,14 +56,16 @@
                         Create New Post on GitHub
                     </a>
                 </p>
-            <div class="post">
                 
+                <h4>Post Template:</h4>
                 <div id="template-container" style="position: relative;">
                     <pre id="post-template" class="content-code-block" style="cursor: pointer; user-select: all;" onclick="copyTemplate()">---
 title: "Your Post Title Here"
-date: "2025-09-19"
+date: "2025-09-20"
 tags: ["category1", "category2"]
-image: "https://example.com/optional-header-image.jpg"
+image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d"
+embed: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+embedType: "youtube"
 ---
 
 # Your Main Heading
@@ -45,14 +74,32 @@ Write your post content here using **Markdown**!
 
 You can use:
 - **Bold text**
-- *Italic text*
+- *Italic text* 
 - [Links](https://example.com)
 - `inline code`
 - Images: ![Alt text](https://example.com/image.jpg)
 
-## Subheadings
+## Video Embeds
 
-More content here.
+For YouTube videos, use:
+```
+embed: "https://www.youtube.com/watch?v=VIDEO_ID"
+embedType: "youtube"
+```
+
+For Vimeo videos, use:
+```
+embed: "https://vimeo.com/VIDEO_ID"
+embedType: "vimeo"
+```
+
+For Spotify content, use:
+```
+embed: "https://open.spotify.com/episode/EPISODE_ID"
+embedType: "spotify"
+```
+
+## Code Blocks
 
 ```javascript
 // Code blocks work too
@@ -61,9 +108,14 @@ function hello() {
 }
 ```
 
-## Another Section
+## Lists and More
 
-Keep writing your amazing content!</pre>
+1. Numbered lists
+2. Work great too
+
+- Bullet points
+- Are also supported
+</pre>
                     <div id="copy-feedback" style="position: absolute; top: 10px; right: 10px; background: #333; color: white; padding: 5px 10px; border-radius: 3px; display: none;">
                         Copied!
                     </div>
@@ -71,12 +123,13 @@ Keep writing your amazing content!</pre>
                 
                 
                 
-                <h4>Current Posts:</h4>
-                <div id="current-posts">
-                    Loading current posts...
-                </div>
+                
                 
             </div>
+            </div>
+            
+            
+            
             
         </main>
     </div>

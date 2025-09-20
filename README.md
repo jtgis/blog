@@ -4,13 +4,14 @@ A clean, minimal blog built with pure HTML, CSS, and JavaScript. No frameworks, 
 
 ## Features
 
-- 📝 **Markdown support** - Write posts in Markdown
-- 🎥 **Video embeds** - YouTube, Vimeo support
-- 🎵 **Audio embeds** - Spotify podcasts and music
-- 🖼️ **Image headers** - Beautiful post images
-- 📱 **Responsive design** - Works on all devices
-- 🚀 **GitHub Pages ready** - No build process needed
-- 🔍 **Search & filtering** - By tags and date archives
+- Markdown support - Write posts in Markdown
+- Video embeds - YouTube, Vimeo support
+- Audio embeds - Spotify podcasts and music
+- Image headers - Beautiful post images
+- Responsive design - Works on all devices
+- GitHub Pages ready - No build process needed
+- Search & filtering - By tags and date archives
+- Admin dashboard - Statistics and post management
 
 ## Quick Start
 
@@ -192,8 +193,17 @@ function hello() {
 
 ![Sample Image](https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d)
 
-That's it! Happy blogging! 🎉
+That's it! Happy blogging!
 ```
+
+## Admin Dashboard
+
+Access the admin dashboard at `/admin.html` to:
+
+- View blog statistics (total posts, tags, longest post)
+- See all current posts
+- Copy post templates with embed examples
+- Quick access to create new posts on GitHub
 
 ## Publishing Workflow
 
