@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - jtgis</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>jtgis Admin</h1>
+            <nav>
+                <a href="index.html">Home</a>
+                <a href="about.html">About</a>
+                <a href="admin.html">Admin</a>
+            </nav>
+        </header>
+        
+        <div class="main-content">
+            <main class="posts-section">
+                <!-- Login Form -->
+                <div id="login-form" class="post">
+                    <h2>Admin</h2>
+                    <form onsubmit="handleLogin(event)">
+                        <button type="submit" style="background-color: #333; color: white; padding: 10px 20px; border: none; font-family: 'Courier New', monospace; cursor: pointer;">Access GitHub CMS</button>
+                    </form>
+                </div>
+
+                <!-- Post Creation Instructions (hidden by default) -->
+                <div id="post-form" class="post" style="display: none;">
+                    <!-- Content will be filled by admin.js -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

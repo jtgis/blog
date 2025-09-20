@@ -1,130 +1,174 @@
-(function(){
-const app=document.querySelector("#app");const sidebar=document.querySelector("#sidebar");const y=document.querySelector("#year");if(y)y.textContent=new Date().getFullYear();
-const PER_PAGE=6; const IMG_MD_RE=/!\[[^\]]*\]\(([^)]+)\)/;
-function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-function autoLink(t){return t.replace(/(https?:\/\/[^\s<]+[^\s<\.)])/g,'<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');}
+let currentPage = 1;
+const postsPerPage = 10;
+let allPosts = [];
+let filteredPosts = [];
+let currentFilter = null;
 
-function parseTables(md){
-  const lines = md.split("\n");
-  const out = [];
-  function isDivider(line){
-    const trimmed = (line||"").trim();
-    if(!trimmed) return false;
-    const parts = trimmed.replace(/^\|/,"").replace(/\|$/,"").split("|");
-    if(parts.length<1) return false;
-    for(var i=0;i<parts.length;i++){
-      var cell = parts[i].trim();
-      if(!/^:?-{3,}:?$/.test(cell)) return false;
+// Sample posts data - in a real implementation, this would come from a server or file
+const samplePosts = [
+    {
+        id: 1,
+        title: "Welcome to My Blog",
+        content: "This is the first post on my minimal blog. Built with plain HTML, CSS, and JavaScript.",
+        excerpt: "This is the first post on my minimal blog. Built with plain HTML, CSS, and JavaScript.",
+        date: "2025-09-19",
+        tags: ["welcome", "blog", "javascript"],
+        slug: "welcome-to-my-blog",
+        image: null
+    },
+    {
+        id: 2,
+        title: "Building a Minimal Blog",
+        content: "Today I'm sharing how I built this simple blog using Courier New font and an off-white background.",
+        excerpt: "Today I'm sharing how I built this simple blog using Courier New font and an off-white background.",
+        date: "2025-09-18",
+        tags: ["tutorial", "web-development", "css"],
+        slug: "building-minimal-blog",
+        image: null
     }
-    return true;
-  }
-  function splitCells(s){
-    return s.replace(/^\|/,"").replace(/\|$/,"").split("|").map(function(x){return x.trim();});
-  }
+    // Add more sample posts as needed
+];
 
-  var i=0;
-  while(i<lines.length){
-    var header = lines[i];
-    var divider = lines[i+1];
-    if(header && header.indexOf("|")>-1 && isDivider(divider)){
-      var rows = [];
-      var j = i+2;
-      while(j<lines.length && lines[j].trim()!=="" && lines[j].indexOf("|")>-1){
-        rows.push(lines[j]); j++;
-      }
-      var heads = splitCells(header);
-      var aligns = splitCells(divider).map(function(c){
-        c=c.trim(); var L=c[0]===":", R=c[c.length-1]===":"; return L&&R?"center":R?"right":L?"left":"";
-      });
-      var thead = "<thead><tr>"+heads.map(function(h,idx){
-        return "<th"+(aligns[idx]?' style="text-align:'+aligns[idx]+'"':"")+">"+h+"</th>";
-      }).join("")+"</tr></thead>";
-      var tbody = rows.map(function(r){
-        var cells = splitCells(r);
-        return "<tr>"+cells.map(function(c,idx){
-          return "<td"+(aligns[idx]?' style="text-align:'+aligns[idx]+'"':"")+">"+c+"</td>";
-        }).join("")+"</tr>";
-      }).join("");
-      out.push("<table>"+thead+"<tbody>"+tbody+"</tbody></table>");
-      i = j;
-      continue;
+function loadPosts(page = 1) {
+    currentPage = page;
+    const postsToDisplay = currentFilter ? filteredPosts : allPosts;
+    const startIndex = (page - 1) * postsPerPage;
+    const endIndex = startIndex + postsPerPage;
+    const postsToShow = postsToDisplay.slice(startIndex, endIndex);
+    
+    const postsContainer = document.getElementById('posts-container');
+    postsContainer.innerHTML = '';
+    
+    if (postsToShow.length === 0) {
+        postsContainer.innerHTML = '<div class="post"><h2>No posts found</h2><p>No posts match the current filter.</p></div>';
     } else {
-      out.push(header);
-      i++;
+        postsToShow.forEach(post => {
+            const postElement = createPostElement(post);
+            postsContainer.appendChild(postElement);
+        });
     }
-  }
-  return out.join("\n");
+    
+    updatePagination();
+    updateSidebar();
 }
 
-function mdToHtml(src){
-  let md=src.replace(/\r\n?/g,"\n");
-  const codes=[]; md=md.replace(/```(\w+)?\n([\s\S]*?)```/g,(_,lang,code)=>{const i=codes.length;codes.push({lang:lang||"",code});return "\u0000C"+i+"\u0000";});
-
-  // Convert tables via parser (before other inline conversions)
-  md = parseTables(md);
-
-  // Images
-  md=md.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,(_,alt,src)=>{const abs=/^(https?:)?\/\//i.test(src)||src.startsWith("/");const fixed=abs?src:"posts/"+src;return '<img src="'+fixed+'" alt="'+escapeHtml(alt||"")+'" style="max-width:100%;">';});
-  // Links
-  md=md.replace(/\[([^\]]+)\]\(([^)]+)\)/g,(_,txt,href)=>'<a href="'+href+'" target="_blank" rel="noopener noreferrer">'+txt+'</a>');
-  // Strikethrough
-  md=md.replace(/~~([^~]+)~~/g,"<del>$1</del>");
-  // Headings
-  for(let i=6;i>=1;i--){const re=new RegExp("^"+("#".repeat(i))+"\\s+(.+)$","gm");md=md.replace(re,(_,t)=>"<h"+i+">"+t.trim()+"</h"+i+">");}
-  // Blockquotes
-  md=md.replace(/(^|\n)>\s?([^\n]+(?:\n(?!\n).+)*)/g,(m,lead,body)=>{const inner=body.split("\n").map(l=>l.replace(/^>\s?/,"")).join("\n");return lead+"<blockquote>"+inner+"</blockquote>";});
-  // Task lists
-  md=md.replace(/^(?:\s*[-*+]\s+\[( |x|X)\]\s+.*(?:\n(?!\n).*)*)/gm,block=>{
-    const items=block.split("\n").map(line=>{const m=line.match(/^\s*[-*+]\s+\[( |x|X)\]\s+(.*)$/);if(!m)return null;const checked=m[1].toLowerCase()==="x";return '<li class="task-list-item"><input type="checkbox" disabled '+(checked?"checked":"")+"> "+m[2]+"</li>";}).filter(Boolean).join("");
-    return '<ul class="task-list">'+items+"</ul>";
-  });
-  // Unordered lists
-  md=md.replace(/(?:^|\n)(\s*[-*+]\s+.+(?:\n(?!\n).+)*)/g,(m,block)=>{if(/class="task-list"/.test(block))return m;const items=block.split("\n").map(l=>l.replace(/^\s*[-*+]\s+/,"")).map(s=>"<li>"+s+"</li>").join("");return "\n<ul>"+items+"</ul>";});
-  // Ordered lists
-  md=md.replace(/(?:^|\n)((?:\s*\d+\.\s+.+)(?:\n(?!\n).+)*)/g,(m,block)=>{const items=block.split("\n").map(l=>l.replace(/^\s*\d+\.\s+/,"")).map(s=>"<li>"+s+"</li>").join("");return "\n<ol>"+items+"</ol>";});
-  // Paragraphs
-  md=md.split(/\n{2,}/).map(chunk=>{if(/^\s*<(h\d|ul|ol|pre|blockquote|table|img)/.test(chunk))return chunk;if(chunk.trim()==="")return "";return "<p>"+autoLink(chunk.replace(/\n+/g," "))+"</p>";}).join("\n");
-  // Restore code blocks
-  md=md.replace(/\u0000C(\d+)\u0000/g,(_,i)=>{i=Number(i);const b=codes[i];const cls=b.lang?' class="language-'+b.lang+'"':"";return "<pre><code"+cls+">"+escapeHtml(b.code)+"</code></pre>";});
-  return md;
+function createPostElement(post) {
+    const postDiv = document.createElement('div');
+    postDiv.className = 'post';
+    
+    const imageHtml = post.image ? 
+        `<img src="${post.image}" alt="${post.title}" style="max-width: 100%; height: auto; margin-bottom: 15px; display: block;">` : '';
+    
+    postDiv.innerHTML = `
+        <h2><a href="post.html?slug=${post.slug}" style="color: #333; text-decoration: none;">${post.title}</a></h2>
+        <div class="post-meta">
+            Published on ${formatDate(post.date)}
+        </div>
+        ${imageHtml}
+        <div class="post-excerpt">
+            ${post.excerpt}
+        </div>
+        <div style="margin-top: 10px;">
+            <a href="post.html?slug=${post.slug}" style="color: #333; text-decoration: underline;">Read more →</a>
+        </div>
+        <div class="post-tags">
+            ${post.tags.map(tag => `<a href="#" class="tag" onclick="filterByTag('${tag}')">${tag}</a>`).join('')}
+        </div>
+    `;
+    
+    return postDiv;
 }
 
-function params(){const p=new URLSearchParams(location.search);return{post:p.get("post"),tag:p.get("tag"),year:p.get("year"),month:p.get("month"),page:parseInt(p.get("page")||"1",10)};}
-async function loadPosts(){try{const r=await fetch("posts.json",{cache:"no-store"});if(r.ok)return await r.json();}catch(e){}try{const d=document.querySelector("#posts-data");return d?JSON.parse(d.textContent):[];}catch(e){return [];}}
-
-function buildSidebar(posts){
-  const tags=[...new Set(posts.flatMap(p=>p.tags||[]))].sort((a,b)=>a.localeCompare(b));
-  const archive={}; posts.forEach(p=>{const d=new Date(p.date),y=String(d.getFullYear()),m=String(d.getMonth()+1).padStart(2,"0"); (archive[y]||(archive[y]=new Set())).add(m);});
-  const years=Object.keys(archive).sort((a,b)=>b.localeCompare(a));
-  const monthNames={"01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"May","06":"Jun","07":"Jul","08":"Aug","09":"Sep","10":"Oct","11":"Nov","12":"Dec"};
-  const tagHTML="<h3>Tags</h3>"+(tags.length?"<ul>"+tags.map(t=>'<li><a href="?tag='+encodeURIComponent(t)+'">'+t+"</a></li>").join("")+"</ul>":"<div class='muted'>No tags</div>");
-  const archHTML="<h3>Archives</h3>"+(years.length?"<ul>"+years.map(y=>{const months=[...archive[y]].sort((a,b)=>b.localeCompare(a));const mlinks=months.map(m=>'<a href="?year='+y+'&month='+m+'">'+monthNames[m]+" "+y+"</a>").join(" · ");return "<li><a href='?year="+y+"'>"+y+"</a>"+(months.length?"<div>"+mlinks+"</div>":"")+"</li>";}).join("")+"</ul>":"<div class='muted'>No archives</div>");
-  sidebar.innerHTML=tagHTML+archHTML;
-  sidebar.querySelectorAll('a[href^="?"]').forEach(a=>a.addEventListener("click",e=>{e.preventDefault();history.pushState({}, "", a.href);route();}));
-  const homeLink=document.querySelector(".home-link");
-  if(homeLink){homeLink.addEventListener("click",function(e){e.preventDefault();history.pushState({}, "", "./");route();});}
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
 }
 
-function filterPosts(posts,f){let list=posts.slice();if(f.tag)list=list.filter(p=>Array.isArray(p.tags)&&p.tags.includes(f.tag));if(f.year)list=list.filter(p=>new Date(p.date).getFullYear()===Number(f.year));if(f.month)list=list.filter(p=>(new Date(p.date).getMonth()+1)===Number(f.month));return list;}
-function paginate(list,page){const pages=Math.max(1,Math.ceil(list.length/6));const current=Math.min(Math.max(1,page),pages);const start=(current-1)*6;return{slice:list.slice(start,start+6),pages,current};}
-
-async function renderList(posts,f){
-  const list=filterPosts(posts,f).sort((a,b)=>a.date<b.date?1:-1);
-  const {slice,pages,current}=paginate(list,f.page||1);
-  const enriched=await Promise.all(slice.map(async p=>{try{const r=await fetch("posts/"+p.slug+".md");const md=await r.text();const m=md.match(IMG_MD_RE);let img=m?m[1]:null;if(img&&!/^https?:\/\//i.test(img)&&!img.startsWith("/")&&!img.startsWith("posts/"))img="posts/"+img;return Object.assign({},p,{image:img});}catch(e){return Object.assign({},p,{image:null});}}));
-  const items=enriched.map(p=>{const date=new Date(p.date).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"});const tags=(p.tags||[]).map(t=>'<span class="tag">#<a href="?tag='+encodeURIComponent(t)+'">'+t+"</a></span>").join(" ");const img=p.image?'<div><img src="'+p.image+'" alt="" style="max-width:100%;margin:0.5rem 0;"></div>':"";const desc=p.description?'<div class="post-desc">'+escapeHtml(p.description)+'</div>':"";return '<li><h2 class="post-title"><a href="?post='+encodeURIComponent(p.slug)+'">'+escapeHtml(p.title)+'</a></h2><div class="post-meta">'+date+(tags?(' · <span class="tags">'+tags+"</span>"):"")+'</div>'+img+desc+'</li>';}).join("");
-  const links=[];function mk(n,l){const q=new URLSearchParams(location.search);q.delete("post");q.set("page",String(n));return '<a href="?'+q.toString()+'">'+l+"</a>";}
-  if(pages>1){links.push(current>1?mk(current-1,"« Prev"):"<span>« Prev</span>");for(let n=1;n<=pages;n++)links.push(n===current?'<span class="current">'+n+"</span>":mk(n,String(n)));links.push(current<pages?mk(current+1,"Next »"):"<span>Next »</span>");}
-  app.innerHTML='<section>'+(list.length?'<ul class="post-list">'+items+'</ul>':'<p>No posts found.</p>')+'<div class="pagination">'+links.join("")+'</div></section>';
-  app.querySelectorAll('a[href^="?"]').forEach(a=>a.addEventListener("click",e=>{e.preventDefault();history.pushState({}, "", a.href);route();}));
+function updatePagination() {
+    const postsToDisplay = currentFilter ? filteredPosts : allPosts;
+    const totalPages = Math.ceil(postsToDisplay.length / postsPerPage);
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const pageInfo = document.getElementById('page-info');
+    
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+    pageInfo.textContent = totalPages > 0 ? `Page ${currentPage} of ${totalPages}` : 'No pages';
+    
+    // Show filter status
+    if (currentFilter) {
+        pageInfo.textContent += ` (filtered by: ${currentFilter.type} = ${currentFilter.value})`;
+    }
 }
 
-async function renderPost(posts,slug){
-  const p=posts.find(x=>x.slug===slug); if(!p){app.innerHTML="<p>Not found</p>";return;}
-  app.innerHTML='<p><a class="back-link" href="./">← Back</a></p><article><h1>'+escapeHtml(p.title)+'</h1><div class="post-meta">'+new Date(p.date).toLocaleDateString()+'</div><div id="post-body">Loading…</div></article>';
-  try{const r=await fetch("posts/"+p.slug+".md");const md=await r.text();document.querySelector("#post-body").innerHTML=mdToHtml(md);document.querySelector(".back-link").addEventListener("click",e=>{e.preventDefault();history.pushState({}, "", "./");route();});}catch(e){document.querySelector("#post-body").textContent="Couldn't load this post.";}
+function updateSidebar() {
+    updateTags();
+    updateArchives();
 }
 
-async function route(){const posts=await loadPosts();buildSidebar(posts);const p=params();if(p.post)await renderPost(posts,p.post);else await renderList(posts,p);}
-window.addEventListener("popstate", route); route();
-})();
+function updateTags() {
+    const tagsContainer = document.getElementById('tags-container');
+    const allTags = [...new Set(allPosts.flatMap(post => post.tags))];
+    
+    tagsContainer.innerHTML = allTags.map(tag => 
+        `<a href="#" class="tag" onclick="filterByTag('${tag}')" style="${currentFilter && currentFilter.type === 'tag' && currentFilter.value === tag ? 'background-color: #666;' : ''}">${tag}</a>`
+    ).join('');
+    
+    // Add clear filter button if there's an active filter
+    if (currentFilter) {
+        tagsContainer.innerHTML += '<br><br><a href="#" onclick="clearFilter()" style="color: #333; text-decoration: underline;">Clear Filter</a>';
+    }
+}
+
+function updateArchives() {
+    const archivesContainer = document.getElementById('archives-container');
+    const months = [...new Set(allPosts.map(post => {
+        const date = new Date(post.date);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    }))];
+    
+    archivesContainer.innerHTML = months.map(month => {
+        const [year, monthNum] = month.split('-');
+        const monthName = new Date(year, monthNum - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const isActive = currentFilter && currentFilter.type === 'month' && currentFilter.value === month;
+        return `<div><a href="#" style="color: #333; text-decoration: none; ${isActive ? 'font-weight: bold;' : ''}" onclick="filterByMonth('${month}')">${monthName}</a></div>`;
+    }).join('');
+}
+
+function filterByTag(tag) {
+    currentFilter = { type: 'tag', value: tag };
+    filteredPosts = allPosts.filter(post => post.tags.includes(tag));
+    currentPage = 1;
+    loadPosts(1);
+}
+
+function filterByMonth(month) {
+    currentFilter = { type: 'month', value: month };
+    filteredPosts = allPosts.filter(post => {
+        const postDate = new Date(post.date);
+        const postMonth = `${postDate.getFullYear()}-${String(postDate.getMonth() + 1).padStart(2, '0')}`;
+        return postMonth === month;
+    });
+    currentPage = 1;
+    loadPosts(1);
+}
+
+function clearFilter() {
+    currentFilter = null;
+    filteredPosts = [];
+    currentPage = 1;
+    loadPosts(1);
+}
+
+// Initialize the blog
+document.addEventListener('DOMContentLoaded', async function() {
+    // Load posts from GitHub first, fall back to sample posts
+    const githubPosts = await loadPostsFromGitHub();
+    allPosts = githubPosts.length > 0 ? githubPosts : samplePosts;
+    console.log('Loaded posts:', allPosts);
+    loadPosts(1);
+});
