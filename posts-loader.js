@@ -4,14 +4,16 @@ async function loadPostsFromGitHub() {
     try {
         console.log('Loading posts with manifest...');
         console.log('Current domain:', window.location.hostname);
+        console.log('Current timestamp:', new Date().toISOString());
         
-        // First, load the manifest
+        // First, load the manifest with cache busting
+        const cacheBuster = '?t=' + Date.now();
         const manifestPaths = [
-            'posts/manifest.json',
-            './posts/manifest.json',
-            '/posts/manifest.json',
-            'https://jtgis.ca/posts/manifest.json',
-            'https://raw.githubusercontent.com/jtgis/blog/main/posts/manifest.json'
+            `posts/manifest.json${cacheBuster}`,
+            `./posts/manifest.json${cacheBuster}`,
+            `/posts/manifest.json${cacheBuster}`,
+            `https://jtgis.ca/posts/manifest.json${cacheBuster}`,
+            `https://raw.githubusercontent.com/jtgis/blog/main/posts/manifest.json${cacheBuster}`
         ];
         
         let manifest = null;
@@ -20,13 +22,28 @@ async function loadPostsFromGitHub() {
         for (const path of manifestPaths) {
             try {
                 console.log(`Trying manifest path: ${path}`);
-                const response = await fetch(path);
-                console.log(`Manifest ${path} response:`, response.status);
+                const response = await fetch(path, { 
+                    cache: 'no-cache',
+                    headers: {
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+                console.log(`Manifest ${path} response:`, response.status, response.statusText);
                 
                 if (response.ok) {
-                    manifest = await response.json();
+                    const manifestText = await response.text();
+                    console.log('Raw manifest content:', manifestText);
+                    
+                    try {
+                        manifest = JSON.parse(manifestText);
+                        console.log('Parsed manifest:', manifest);
+                    } catch (parseError) {
+                        console.error('Failed to parse manifest JSON:', parseError);
+                        continue;
+                    }
+                    
                     // Extract the base path for posts
-                    workingBasePath = path.replace('manifest.json', '');
+                    workingBasePath = path.replace('manifest.json' + cacheBuster, '');
                     console.log('Manifest loaded from:', path);
                     console.log('Using base path:', workingBasePath);
                     break;
@@ -36,11 +53,21 @@ async function loadPostsFromGitHub() {
             }
         }
         
-        if (!manifest || !manifest.files) {
-            throw new Error('Could not load manifest or invalid format');
+        if (!manifest) {
+            throw new Error('Could not load manifest from any path');
         }
         
-        console.log('Manifest files:', manifest.files);
+        if (!manifest.files || !Array.isArray(manifest.files)) {
+            console.error('Invalid manifest format:', manifest);
+            throw new Error('Invalid manifest format - missing or invalid files array');
+        }
+        
+        console.log('Manifest files array:', manifest.files);
+        
+        if (manifest.files.length === 0) {
+            console.log('No files in manifest');
+            return [];
+        }
         
         // Now load each post using the working base path
         const posts = await Promise.all(
@@ -48,18 +75,25 @@ async function loadPostsFromGitHub() {
                 try {
                     console.log('Loading post:', filename);
                     
-                    const postPath = workingBasePath + filename;
+                    const postPath = workingBasePath + filename + '?t=' + Date.now();
                     console.log(`Loading from: ${postPath}`);
                     
-                    const response = await fetch(postPath);
-                    console.log(`Post ${filename} response:`, response.status);
+                    const response = await fetch(postPath, { 
+                        cache: 'no-cache',
+                        headers: {
+                            'Cache-Control': 'no-cache'
+                        }
+                    });
+                    console.log(`Post ${filename} response:`, response.status, response.statusText);
                     
                     if (!response.ok) {
-                        throw new Error(`Post not found: ${filename} - ${response.status}`);
+                        console.error(`Post not found: ${filename} - ${response.status} ${response.statusText}`);
+                        return null;
                     }
                     
                     const content = await response.text();
                     console.log(`Post ${filename} loaded, length:`, content.length);
+                    console.log(`Post ${filename} content preview:`, content.substring(0, 200));
                     
                     const parsedPost = parseMarkdownPost(content, filename);
                     console.log(`Parsed ${filename}:`, parsedPost.title);
@@ -76,24 +110,35 @@ async function loadPostsFromGitHub() {
         console.log(`Successfully loaded ${validPosts.length} posts out of ${manifest.files.length} attempted`);
         
         if (validPosts.length > 0) {
-            console.log('Valid posts:', validPosts.map(p => p.title));
+            console.log('Valid posts:', validPosts.map(p => ({ title: p.title, slug: p.slug, date: p.date })));
+        } else {
+            console.log('No valid posts loaded');
         }
         
         return validPosts;
         
     } catch (error) {
         console.error('Error in loadPostsFromGitHub:', error);
+        console.log('Falling back to empty array');
         return [];
     }
 }
 
 function parseMarkdownPost(content, filename) {
     console.log('Parsing post:', filename);
+    console.log('Content length:', content.length);
+    
+    if (!content || content.trim().length === 0) {
+        console.error('Empty content for:', filename);
+        return null;
+    }
     
     const lines = content.split('\n');
+    console.log('Content lines:', lines.length);
+    console.log('First few lines:', lines.slice(0, 5));
     
     if (lines[0].trim() !== '---') {
-        console.log('No frontmatter found, using defaults');
+        console.log('No frontmatter found, using defaults for:', filename);
         return {
             id: filename.replace('.md', ''),
             title: filename.replace('.md', '').replace(/-/g, ' '),
@@ -115,14 +160,19 @@ function parseMarkdownPost(content, filename) {
     }
     
     if (frontmatterEnd === -1) {
-        console.error('Invalid frontmatter - no closing ---');
+        console.error('Invalid frontmatter - no closing --- in:', filename);
+        console.log('Lines searched:', lines.slice(0, 10));
         throw new Error('Invalid frontmatter');
     }
+    
+    console.log('Frontmatter ends at line:', frontmatterEnd);
     
     const frontmatter = {};
     for (let i = 1; i < frontmatterEnd; i++) {
         const line = lines[i].trim();
         if (!line) continue;
+        
+        console.log('Processing frontmatter line:', line);
         
         const colonIndex = line.indexOf(':');
         if (colonIndex > -1) {
@@ -141,12 +191,16 @@ function parseMarkdownPost(content, filename) {
             }
             
             frontmatter[key] = value;
+            console.log(`Frontmatter ${key}:`, value);
         }
     }
     
-    const postContent = lines.slice(frontmatterEnd + 1).join('\n').trim();
+    console.log('Final frontmatter:', frontmatter);
     
-    return {
+    const postContent = lines.slice(frontmatterEnd + 1).join('\n').trim();
+    console.log('Post content length after frontmatter:', postContent.length);
+    
+    const post = {
         id: filename.replace('.md', ''),
         title: frontmatter.title || filename.replace('.md', '').replace(/-/g, ' '),
         content: simpleMarkdownToHtml(postContent),
@@ -156,6 +210,10 @@ function parseMarkdownPost(content, filename) {
         slug: filename.replace('.md', ''),
         image: frontmatter.image
     };
+    
+    console.log('Created post object:', { title: post.title, slug: post.slug, date: post.date });
+    
+    return post;
 }
 
 function createExcerpt(content) {
