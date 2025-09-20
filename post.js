@@ -35,7 +35,7 @@ function displayPost(post) {
     document.getElementById('post-title').textContent = `${post.title} - jtgis`;
     
     const imageHtml = post.image ? 
-        `<img src="${post.image}" alt="${post.title}" style="max-width: 100%; height: auto; margin-bottom: 20px; display: block; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">` : '';
+        `<img src="${post.image}" alt="${post.title}" class="header-image">` : '';
     
     const postContainer = document.getElementById('post-container');
     postContainer.innerHTML = `
@@ -48,7 +48,7 @@ function displayPost(post) {
             <div class="post-content">
                 ${post.content}
             </div>
-            <div class="post-tags" style="margin-top: 20px;">
+            <div class="post-tags">
                 ${post.tags.map(tag => `<a href="index.html?tag=${tag}" class="tag">${tag}</a>`).join('')}
             </div>
         </div>
@@ -61,7 +61,7 @@ function showError(message) {
         <div class="post">
             <h2>Error</h2>
             <p>${message}</p>
-            <p><a href="index.html" style="color: #333; text-decoration: underline;">← Back to home</a></p>
+            <p><a href="index.html" class="back-link">← Back to home</a></p>
         </div>
     `;
 }

@@ -70,10 +70,10 @@ function createPostElement(post) {
     postDiv.className = 'post';
     
     const imageHtml = post.image ? 
-        `<img src="${post.image}" alt="${post.title}" style="max-width: 100%; height: auto; margin-bottom: 15px; display: block;">` : '';
+        `<img src="${post.image}" alt="${post.title}" class="header-image">` : '';
     
     postDiv.innerHTML = `
-        <h2><a href="post.html?slug=${post.slug}" style="color: #333; text-decoration: none;">${post.title}</a></h2>
+        <h2><a href="post.html?slug=${post.slug}" class="content-link">${post.title}</a></h2>
         <div class="post-meta">
             Published on ${formatDate(post.date)}
         </div>
@@ -81,8 +81,8 @@ function createPostElement(post) {
         <div class="post-excerpt">
             ${post.excerpt}
         </div>
-        <div style="margin-top: 10px;">
-            <a href="post.html?slug=${post.slug}" style="color: #333; text-decoration: underline;">Read more →</a>
+        <div class="read-more-link">
+            <a href="post.html?slug=${post.slug}" class="content-link">Read more →</a>
         </div>
         <div class="post-tags">
             ${post.tags.map(tag => `<a href="#" class="tag" onclick="filterByTag('${tag}')">${tag}</a>`).join('')}
@@ -128,12 +128,11 @@ function updateTags() {
     const allTags = [...new Set(allPosts.flatMap(post => post.tags))];
     
     tagsContainer.innerHTML = allTags.map(tag => 
-        `<a href="#" class="tag" onclick="filterByTag('${tag}')" style="${currentFilter && currentFilter.type === 'tag' && currentFilter.value === tag ? 'background-color: #666;' : ''}">${tag}</a>`
+        `<a href="#" class="tag ${currentFilter && currentFilter.type === 'tag' && currentFilter.value === tag ? 'active' : ''}" onclick="filterByTag('${tag}')">${tag}</a>`
     ).join('');
     
-    // Add clear filter button if there's an active filter
     if (currentFilter) {
-        tagsContainer.innerHTML += '<br><br><a href="#" onclick="clearFilter()" style="color: #333; text-decoration: underline;">Clear Filter</a>';
+        tagsContainer.innerHTML += '<br><br><a href="#" onclick="clearFilter()" class="clear-filter-link">Clear Filter</a>';
     }
 }
 
@@ -148,7 +147,7 @@ function updateArchives() {
         const [year, monthNum] = month.split('-');
         const monthName = new Date(year, monthNum - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
         const isActive = currentFilter && currentFilter.type === 'month' && currentFilter.value === month;
-        return `<div><a href="#" style="color: #333; text-decoration: none; ${isActive ? 'font-weight: bold;' : ''}" onclick="filterByMonth('${month}')">${monthName}</a></div>`;
+        return `<div><a href="#" class="archive-link ${isActive ? 'active' : ''}" onclick="filterByMonth('${month}')">${monthName}</a></div>`;
     }).join('');
 }
 

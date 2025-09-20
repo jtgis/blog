@@ -14,12 +14,12 @@ body {
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px 40px; /* Increased horizontal padding */
+    padding: 20px 40px;
 }
 
 .main-content {
     display: flex;
-    gap: 60px; /* Increased gap */
+    gap: 60px;
 }
 
 .posts-section {
@@ -28,12 +28,12 @@ body {
 }
 
 .sidebar {
-    flex: 0 0 300px; /* Slightly wider sidebar */
+    flex: 0 0 300px;
     padding: 0;
 }
 
 .post {
-    margin-bottom: 60px; /* More space between posts */
+    margin-bottom: 60px;
     padding: 0 0 40px 0;
     border-bottom: 1px solid #e0e0e0;
 }
@@ -43,7 +43,7 @@ body {
 }
 
 .post h1, .post h2 {
-    margin-bottom: 15px; /* More margin */
+    margin-bottom: 15px;
     font-size: 1.8em;
     font-weight: normal;
 }
@@ -51,18 +51,18 @@ body {
 .post-meta {
     color: #666;
     font-size: 0.9em;
-    margin-bottom: 25px; /* More margin */
+    margin-bottom: 25px;
     padding-bottom: 15px;
     border-bottom: 1px solid #f0f0f0;
 }
 
 .post-content, .post-excerpt {
-    margin-bottom: 20px; /* More margin */
+    margin-bottom: 20px;
     color: #444;
 }
 
 .post-tags {
-    margin-top: 25px; /* More margin */
+    margin-top: 25px;
 }
 
 .tag {
@@ -79,6 +79,10 @@ body {
 
 .tag:hover {
     background-color: #555;
+}
+
+.tag.active {
+    background-color: #666;
 }
 
 .widget {
@@ -126,7 +130,7 @@ body {
 
 header {
     border-bottom: 1px solid #e0e0e0;
-    margin-bottom: 50px; /* More margin */
+    margin-bottom: 50px;
     padding-bottom: 30px;
 }
 
@@ -150,31 +154,93 @@ nav a:hover {
     color: #fafafa;
 }
 
-/* Modern image styling */
-img {
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+/* Content styling classes to replace inline styles */
+.content-image {
     max-width: 100%;
     height: auto;
-    display: block;
     margin: 20px 0;
+    display: block;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.header-image {
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 20px;
+    display: block;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.content-link {
+    color: #333;
+    text-decoration: underline;
+}
+
+.back-link {
+    color: #333;
+    text-decoration: underline;
+}
+
+.read-more-link {
+    color: #333;
+    text-decoration: underline;
+    margin-top: 10px;
+    display: inline-block;
+}
+
+.content-list {
+    margin: 15px 0;
+    padding-left: 30px;
+}
+
+.content-code-block {
+    background: #f0f0f0;
+    padding: 15px;
+    margin: 15px 0;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.content-code-inline {
+    background: #f0f0f0;
+    padding: 2px 6px;
+    font-family: 'Courier New', monospace;
+    border-radius: 2px;
+}
+
+.archive-link {
+    color: #333;
+    text-decoration: none;
+}
+
+.archive-link.active {
+    font-weight: bold;
+}
+
+.clear-filter-link {
+    color: #333;
+    text-decoration: underline;
 }
 
 /* Mobile responsive design */
 @media (max-width: 768px) {
     .container {
-        padding: 15px 20px; /* Smaller padding on mobile */
+        padding: 15px 20px;
     }
     
     .main-content {
-        flex-direction: column; /* Stack sidebar below content */
+        flex-direction: column;
         gap: 30px;
     }
     
     .sidebar {
-        flex: none; /* Remove fixed width */
+        flex: none;
         width: 100%;
-        order: 2; /* Put sidebar after posts */
+        order: 2;
     }
     
     .posts-section {
@@ -182,7 +248,7 @@ img {
     }
     
     header h1 {
-        font-size: 2em; /* Smaller title on mobile */
+        font-size: 2em;
     }
     
     nav {
@@ -197,18 +263,18 @@ img {
     }
     
     .post {
-        margin-bottom: 40px; /* Less space on mobile */
+        margin-bottom: 40px;
     }
     
     .pagination button {
-        padding: 10px 16px; /* Smaller buttons on mobile */
+        padding: 10px 16px;
         margin: 0 5px;
     }
 }
 
 @media (max-width: 480px) {
     .container {
-        padding: 10px 15px; /* Even smaller padding on very small screens */
+        padding: 10px 15px;
     }
     
     header h1 {

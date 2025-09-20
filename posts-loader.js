@@ -2,20 +2,24 @@
 
 async function loadPostsFromGitHub() {
     try {
-        // Try to load a posts manifest file
+        console.log('Loading posts from GitHub...');
         const response = await fetch('posts/manifest.json');
         
         if (!response.ok) {
-            throw new Error('No manifest found');
+            throw new Error(`Manifest not found: ${response.status}`);
         }
         
         const manifest = await response.json();
+        console.log('Manifest loaded:', manifest);
         
-        // Load each post file
         const posts = await Promise.all(
             manifest.files.map(async (filename) => {
                 try {
+                    console.log('Loading post:', filename);
                     const postResponse = await fetch(`posts/${filename}`);
+                    if (!postResponse.ok) {
+                        throw new Error(`Post not found: ${filename}`);
+                    }
                     const postContent = await postResponse.text();
                     return parseMarkdownPost(postContent, filename);
                 } catch (error) {
@@ -25,24 +29,23 @@ async function loadPostsFromGitHub() {
             })
         );
         
-        return posts.filter(post => post !== null).sort((a, b) => new Date(b.date) - new Date(a.date));
+        const validPosts = posts.filter(post => post !== null).sort((a, b) => new Date(b.date) - new Date(a.date));
+        console.log('Valid posts loaded:', validPosts);
+        return validPosts;
         
     } catch (error) {
-        console.log('Loading sample posts (no GitHub posts found)', error);
+        console.error('Error loading posts from GitHub:', error);
         return [];
     }
 }
 
 function parseMarkdownPost(content, filename) {
     console.log('Parsing post:', filename);
-    console.log('Content preview:', content.substring(0, 200));
     
-    // Parse frontmatter and content
     const lines = content.split('\n');
     
     if (lines[0].trim() !== '---') {
         console.log('No frontmatter found, using defaults');
-        // No frontmatter, treat as simple markdown
         return {
             id: filename.replace('.md', ''),
             title: filename.replace('.md', '').replace(/-/g, ' '),
@@ -55,7 +58,6 @@ function parseMarkdownPost(content, filename) {
         };
     }
     
-    // Find end of frontmatter
     let frontmatterEnd = -1;
     for (let i = 1; i < lines.length; i++) {
         if (lines[i].trim() === '---') {
@@ -69,9 +71,6 @@ function parseMarkdownPost(content, filename) {
         throw new Error('Invalid frontmatter');
     }
     
-    console.log('Frontmatter lines:', lines.slice(1, frontmatterEnd));
-    
-    // Parse frontmatter
     const frontmatter = {};
     for (let i = 1; i < frontmatterEnd; i++) {
         const line = lines[i].trim();
@@ -82,13 +81,11 @@ function parseMarkdownPost(content, filename) {
             const key = line.substring(0, colonIndex).trim();
             let value = line.substring(colonIndex + 1).trim();
             
-            // Remove quotes
             if ((value.startsWith('"') && value.endsWith('"')) || 
                 (value.startsWith("'") && value.endsWith("'"))) {
                 value = value.slice(1, -1);
             }
             
-            // Parse arrays (tags)
             if (value.startsWith('[') && value.endsWith(']')) {
                 value = value.slice(1, -1).split(',').map(item => 
                     item.trim().replace(/"/g, '').replace(/'/g, '')
@@ -99,9 +96,6 @@ function parseMarkdownPost(content, filename) {
         }
     }
     
-    console.log('Parsed frontmatter:', frontmatter);
-    
-    // Get content after frontmatter
     const postContent = lines.slice(frontmatterEnd + 1).join('\n').trim();
     
     return {
@@ -117,10 +111,9 @@ function parseMarkdownPost(content, filename) {
 }
 
 function createExcerpt(content) {
-    // Remove markdown and get first few lines
     let text = content.replace(/[#*`\[\]()]/g, '');
-    text = text.replace(/!\[.*?\]\(.*?\)/g, ''); // Remove images
-    text = text.replace(/\[.*?\]\(.*?\)/g, ''); // Remove links
+    text = text.replace(/!\[.*?\]\(.*?\)/g, '');
+    text = text.replace(/\[.*?\]\(.*?\)/g, '');
     
     const lines = text.split('\n').filter(line => line.trim());
     const excerpt = lines.slice(0, 3).join(' ').substring(0, 200);
@@ -129,11 +122,7 @@ function createExcerpt(content) {
 }
 
 function simpleMarkdownToHtml(markdown) {
-    console.log('Processing markdown:', markdown); // Debug log
-    
     let html = markdown;
-    
-    // DON'T remove any headers - show them all!
     
     // Headers
     html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
@@ -143,27 +132,22 @@ function simpleMarkdownToHtml(markdown) {
     // Bold
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     
-    // Italic (but not inside image alt text)
+    // Italic
     html = html.replace(/\*([^*\[\]]+)\*/g, '<em>$1</em>');
     
-    // Images FIRST - before links and lists
-    console.log('Before image processing:', html);
-    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function(match, alt, src) {
-        console.log('Found image:', { match, alt, src });
-        return `<img src="${src}" alt="${alt}" style="max-width: 100%; height: auto; margin: 20px 0; display: block; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">`;
-    });
-    console.log('After image processing:', html);
+    // Images - using CSS classes instead of inline styles
+    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="content-image">');
     
-    // Links (after images)
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: #333; text-decoration: underline;">$1</a>');
+    // Links - using CSS classes
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="content-link">$1</a>');
     
-    // Code blocks
-    html = html.replace(/```([\s\S]*?)```/g, '<pre style="background: #f0f0f0; padding: 15px; margin: 15px 0; overflow-x: auto; font-family: \'Courier New\', monospace; border: 1px solid #ddd; border-radius: 4px;"><code>$1</code></pre>');
+    // Code blocks - using CSS classes
+    html = html.replace(/```([\s\S]*?)```/g, '<pre class="content-code-block"><code>$1</code></pre>');
     
-    // Inline code
-    html = html.replace(/`([^`]+)`/g, '<code style="background: #f0f0f0; padding: 2px 6px; font-family: \'Courier New\', monospace; border-radius: 2px;">$1</code>');
+    // Inline code - using CSS classes
+    html = html.replace(/`([^`]+)`/g, '<code class="content-code-inline">$1</code>');
     
-    // Process lists more carefully
+    // Process lists
     const lines = html.split('\n');
     let inList = false;
     let processedLines = [];
@@ -172,10 +156,9 @@ function simpleMarkdownToHtml(markdown) {
         const trimmedLine = line.trim();
         if (trimmedLine.startsWith('- ')) {
             if (!inList) {
-                processedLines.push('<ul style="margin: 15px 0; padding-left: 30px;">');
+                processedLines.push('<ul class="content-list">');
                 inList = true;
             }
-            // Get content after the "- " and process it
             const listContent = trimmedLine.substring(2);
             processedLines.push('<li>' + listContent + '</li>');
         } else {
@@ -197,19 +180,13 @@ function simpleMarkdownToHtml(markdown) {
     html = html.replace(/\n\s*\n/g, '</p><p>');
     html = html.replace(/\n/g, '<br>');
     
-    // Wrap in paragraphs if doesn't start with HTML tag
     if (!html.match(/^<[h1-6ul]/)) {
         html = '<p>' + html + '</p>';
     }
     
-    // Clean up empty paragraphs and extra breaks
+    // Clean up
     html = html.replace(/<p><\/p>/g, '');
     html = html.replace(/<p>\s*<\/p>/g, '');
-    html = html.replace(/<br>\s*<img/g, '<img'); // Remove breaks before images
-    html = html.replace(/<\/li><br>/g, '</li>'); // Remove breaks after list items
-    html = html.replace(/<\/h[1-6]><br>/g, function(match) { return match.replace('<br>', ''); }); // Remove breaks after headers
-    
-    console.log('Final HTML:', html); // Debug log
     
     return html;
 }
