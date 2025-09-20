@@ -1,111 +1,70 @@
-// Create this new file to handle loading posts from GitHub
+// Simplified posts loader - no manifest file needed
+
+// List your posts here - add new posts to this array
+const POST_FILES = [
+    'post01.md',
+    'post02.md'
+    // Add new posts here when you create them
+];
 
 async function loadPostsFromGitHub() {
     try {
-        console.log('Starting to load posts from GitHub...');
-        console.log('Current URL:', window.location.href);
-        
-        // Try different path variations
-        const possibleManifestPaths = [
-            'posts/manifest.json',
-            './posts/manifest.json',
-            '/posts/manifest.json'
-        ];
-        
-        let manifest = null;
-        let manifestPath = null;
-        
-        for (const path of possibleManifestPaths) {
-            try {
-                console.log('Trying manifest path:', path);
-                const response = await fetch(path);
-                console.log(`${path} response:`, response.status);
-                
-                if (response.ok) {
-                    manifest = await response.json();
-                    manifestPath = path;
-                    console.log('Manifest loaded from:', path);
-                    break;
-                }
-            } catch (error) {
-                console.log(`Failed to load from ${path}:`, error.message);
-            }
-        }
-        
-        if (!manifest) {
-            throw new Error('Could not load manifest from any path');
-        }
-        
-        if (!manifest.files || !Array.isArray(manifest.files)) {
-            throw new Error('Invalid manifest format - missing files array');
-        }
-        
-        // Use the same base path that worked for manifest
-        const basePath = manifestPath.replace('manifest.json', '');
-        console.log('Using base path for posts:', basePath);
+        console.log('Loading posts (simplified method)...');
         
         const posts = await Promise.all(
-            manifest.files.map(async (filename) => {
+            POST_FILES.map(async (filename) => {
                 try {
                     console.log('Loading post:', filename);
-                    const postUrl = `${basePath}${filename}`;
-                    console.log('Fetching from:', postUrl);
                     
-                    const postResponse = await fetch(postUrl);
-                    console.log(`Post ${filename} response status:`, postResponse.status);
+                    // Try different path variations
+                    const possiblePaths = [
+                        `posts/${filename}`,
+                        `./posts/${filename}`,
+                        `/posts/${filename}`
+                    ];
                     
-                    if (!postResponse.ok) {
-                        throw new Error(`Post not found: ${filename} - ${postResponse.status} ${postResponse.statusText}`);
+                    let content = null;
+                    let successPath = null;
+                    
+                    for (const path of possiblePaths) {
+                        try {
+                            const response = await fetch(path);
+                            if (response.ok) {
+                                content = await response.text();
+                                successPath = path;
+                                console.log(`Successfully loaded ${filename} from:`, path);
+                                break;
+                            }
+                        } catch (error) {
+                            console.log(`Failed to load ${filename} from ${path}`);
+                        }
                     }
                     
-                    const postContent = await postResponse.text();
-                    console.log(`Post ${filename} content length:`, postContent.length);
+                    if (!content) {
+                        console.error(`Could not load ${filename} from any path`);
+                        return null;
+                    }
                     
-                    const parsedPost = parseMarkdownPost(postContent, filename);
-                    console.log(`Parsed post ${filename}:`, parsedPost);
-                    
+                    const parsedPost = parseMarkdownPost(content, filename);
+                    console.log(`Parsed ${filename}:`, parsedPost.title);
                     return parsedPost;
+                    
                 } catch (error) {
-                    console.error(`Failed to load post: ${filename}`, error);
+                    console.error(`Error processing ${filename}:`, error);
                     return null;
                 }
             })
         );
         
         const validPosts = posts.filter(post => post !== null).sort((a, b) => new Date(b.date) - new Date(a.date));
-        console.log('Valid posts loaded:', validPosts.length, validPosts);
+        console.log(`Successfully loaded ${validPosts.length} posts`);
         return validPosts;
         
     } catch (error) {
-        console.error('Error loading posts from GitHub:', error);
-        console.log('Falling back to sample posts');
+        console.error('Error in loadPostsFromGitHub:', error);
         return [];
     }
 }
-
-// Test function to check if files exist
-async function testFileAccess() {
-    const filesToTest = [
-        'posts/manifest.json',
-        'posts/post01.md', 
-        'posts/post02.md'
-    ];
-    
-    for (const file of filesToTest) {
-        try {
-            const response = await fetch(file);
-            console.log(`${file}: ${response.status} ${response.statusText}`);
-        } catch (error) {
-            console.error(`${file}: Error -`, error);
-        }
-    }
-}
-
-// Run test on page load
-window.addEventListener('load', () => {
-    console.log('Running file access test...');
-    testFileAccess();
-});
 
 function parseMarkdownPost(content, filename) {
     console.log('Parsing post:', filename);
