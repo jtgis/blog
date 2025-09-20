@@ -1,4 +1,4 @@
-// GitHub API posts loader - no CORS issues
+// GitHub API posts loader with embed support
 
 async function loadPostsFromGitHub() {
     try {
@@ -44,6 +44,7 @@ async function loadPostsFromGitHub() {
                     
                     const content = await contentResponse.text();
                     console.log(`✅ Loaded ${file.name} (${content.length} chars)`);
+                    console.log('Content preview:', content.substring(0, 300));
                     
                     return parseMarkdownPost(content, file.name);
                 } catch (error) {
@@ -53,13 +54,47 @@ async function loadPostsFromGitHub() {
             })
         );
         
-        const validPosts = posts.filter(post => post !== null)
-                               .sort((a, b) => new Date(b.date) - new Date(a.date));
+        const validPosts = posts.filter(post => post !== null);
         
-        console.log(`✅ Successfully loaded ${validPosts.length} posts`);
-        console.log('Posts:', validPosts.map(p => ({ title: p.title, date: p.date })));
+        console.log('Posts before sorting:', validPosts.map(p => ({ 
+            title: p.title, 
+            date: p.date,
+            dateObj: new Date(p.date),
+            timestamp: new Date(p.date).getTime()
+        })));
         
-        return validPosts;
+        // Sort by date (newest first) with better error handling
+        const sortedPosts = validPosts.sort((a, b) => {
+            // Parse dates in local timezone to avoid UTC conversion
+            const parseDate = (dateStr) => {
+                if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+                    return new Date(year, month - 1, day); // month is 0-indexed
+                }
+                return new Date(dateStr);
+            };
+            
+            const dateA = parseDate(a.date);
+            const dateB = parseDate(b.date);
+            
+            console.log(`Comparing dates: ${a.title} (${a.date}, ${dateA.toDateString()}) vs ${b.title} (${b.date}, ${dateB.toDateString()})`);
+            
+            // Handle invalid dates
+            if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
+            if (isNaN(dateA.getTime())) return 1;  // Put invalid dates at end
+            if (isNaN(dateB.getTime())) return -1; // Put invalid dates at end
+            
+            return dateB.getTime() - dateA.getTime(); // Newest first
+        });
+        
+        console.log('Posts after sorting:', sortedPosts.map(p => ({ 
+            title: p.title, 
+            date: p.date 
+        })));
+        
+        console.log(`✅ Successfully loaded ${sortedPosts.length} posts`);
+        
+        return sortedPosts;
         
     } catch (error) {
         console.error('GitHub API loading failed:', error);
@@ -130,15 +165,18 @@ function parseMarkdownPost(content, filename) {
         // Check for frontmatter
         if (lines[0].trim() !== '---') {
             console.log('No frontmatter found, using defaults');
+            const defaultDate = new Date().toISOString().split('T')[0];
             return {
                 id: filename.replace('.md', ''),
                 title: filename.replace('.md', '').replace(/-/g, ' '),
                 content: simpleMarkdownToHtml(content),
                 excerpt: createExcerpt(content),
-                date: new Date().toISOString().split('T')[0],
+                date: defaultDate,
                 tags: [],
                 slug: filename.replace('.md', ''),
-                image: null
+                image: null,
+                embed: null,
+                embedType: null
             };
         }
         
@@ -156,21 +194,28 @@ function parseMarkdownPost(content, filename) {
             return null;
         }
         
-        // Parse frontmatter
+        // Parse frontmatter with detailed logging
         const frontmatter = {};
+        console.log('Parsing frontmatter for:', filename);
+        
         for (let i = 1; i < frontmatterEnd; i++) {
             const line = lines[i].trim();
             if (!line) continue;
+            
+            console.log(`Processing line ${i}:`, line);
             
             const colonIndex = line.indexOf(':');
             if (colonIndex > -1) {
                 const key = line.substring(0, colonIndex).trim();
                 let value = line.substring(colonIndex + 1).trim();
                 
+                console.log(`Raw key: "${key}", raw value: "${value}"`);
+                
                 // Remove quotes
                 if ((value.startsWith('"') && value.endsWith('"')) || 
                     (value.startsWith("'") && value.endsWith("'"))) {
                     value = value.slice(1, -1);
+                    console.log(`After removing quotes: "${value}"`);
                 }
                 
                 // Parse arrays
@@ -178,9 +223,32 @@ function parseMarkdownPost(content, filename) {
                     value = value.slice(1, -1).split(',').map(item => 
                         item.trim().replace(/"/g, '').replace(/'/g, '')
                     ).filter(item => item);
+                    console.log(`Parsed array: `, value);
                 }
                 
                 frontmatter[key] = value;
+                console.log(`Set frontmatter.${key} =`, value);
+            }
+        }
+        
+        console.log('Final frontmatter:', frontmatter);
+        
+        // Handle date parsing more carefully
+        let postDate = frontmatter.date;
+        if (!postDate) {
+            console.log('No date in frontmatter, using current date');
+            postDate = new Date().toISOString().split('T')[0];
+        } else {
+            console.log('Raw date from frontmatter:', postDate, typeof postDate);
+            
+            // Normalize the date format to YYYY-MM-DD
+            const parsedDate = new Date(postDate);
+            if (isNaN(parsedDate.getTime())) {
+                console.error('Invalid date format:', postDate, 'using current date');
+                postDate = new Date().toISOString().split('T')[0];
+            } else {
+                postDate = parsedDate.toISOString().split('T')[0];
+                console.log('Normalized date:', postDate);
             }
         }
         
@@ -191,19 +259,129 @@ function parseMarkdownPost(content, filename) {
             title: frontmatter.title || filename.replace('.md', '').replace(/-/g, ' '),
             content: simpleMarkdownToHtml(postContent),
             excerpt: createExcerpt(postContent),
-            date: frontmatter.date || new Date().toISOString().split('T')[0],
+            date: postDate,
             tags: frontmatter.tags || [],
             slug: filename.replace('.md', ''),
-            image: frontmatter.image
+            image: frontmatter.image || null,
+            embed: frontmatter.embed || null,
+            embedType: frontmatter.embedType || null
         };
         
-        console.log(`✅ Parsed ${filename}:`, post.title);
+        console.log(`✅ Created post object for ${filename}:`);
+        console.log('Title:', post.title);
+        console.log('Date:', post.date);
+        console.log('Date type:', typeof post.date);
+        console.log('Image:', post.image);
+        console.log('Embed:', post.embed);
+        console.log('Tags:', post.tags);
+        
         return post;
         
     } catch (error) {
         console.error(`Error parsing ${filename}:`, error);
         return null;
     }
+}
+
+function createEmbedHtml(embedUrl, embedType) {
+    console.log('Creating embed for:', embedUrl, 'type:', embedType);
+    
+    // Auto-detect embed type if not specified
+    if (!embedType) {
+        if (embedUrl.includes('youtube.com') || embedUrl.includes('youtu.be')) {
+            embedType = 'youtube';
+        } else if (embedUrl.includes('spotify.com')) {
+            embedType = 'spotify';
+        } else if (embedUrl.includes('vimeo.com')) {
+            embedType = 'vimeo';
+        }
+    }
+    
+    console.log('Final embed type:', embedType);
+    
+    switch (embedType) {
+        case 'youtube':
+            return createYouTubeEmbed(embedUrl);
+        case 'spotify':
+            return createSpotifyEmbed(embedUrl);
+        case 'vimeo':
+            return createVimeoEmbed(embedUrl);
+        default:
+            console.log('Using generic iframe for:', embedUrl);
+            return `<iframe src="${embedUrl}" class="embed-iframe" allowfullscreen></iframe>`;
+    }
+}
+
+function createYouTubeEmbed(url) {
+    console.log('Creating YouTube embed for:', url);
+    
+    // Convert YouTube URL to embed format
+    let videoId = '';
+    
+    if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/')[1].split('?')[0];
+    } else if (url.includes('youtube.com/watch?v=')) {
+        videoId = url.split('v=')[1].split('&')[0];
+    }
+    
+    console.log('Extracted video ID:', videoId);
+    
+    if (videoId) {
+        const embedHtml = `
+            <div class="embed-container">
+                <iframe 
+                    src="https://www.youtube.com/embed/${videoId}" 
+                    class="embed-iframe"
+                    allowfullscreen
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+                </iframe>
+            </div>`;
+        
+        console.log('Generated YouTube embed HTML:', embedHtml);
+        return embedHtml;
+    }
+    
+    console.error('Could not extract video ID from:', url);
+    return `<p>Invalid YouTube URL: ${url}</p>`;
+}
+
+function createSpotifyEmbed(url) {
+    console.log('Creating Spotify embed for:', url);
+    
+    // Convert Spotify URL to embed format
+    const embedUrl = url.replace('open.spotify.com/', 'open.spotify.com/embed/').split('?')[0];
+    console.log('Spotify embed URL:', embedUrl);
+    
+    return `
+        <div class="embed-container spotify-embed">
+            <iframe 
+                src="${embedUrl}?utm_source=generator" 
+                class="embed-iframe"
+                allowfullscreen="" 
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                loading="lazy"
+                frameborder="0">
+            </iframe>
+        </div>`;
+}
+
+function createVimeoEmbed(url) {
+    console.log('Creating Vimeo embed for:', url);
+    
+    // Extract Vimeo video ID
+    const videoId = url.split('vimeo.com/')[1].split('?')[0];
+    console.log('Vimeo video ID:', videoId);
+    
+    return `
+        <div class="embed-container">
+            <iframe 
+                src="https://player.vimeo.com/video/${videoId}" 
+                class="embed-iframe"
+                allowfullscreen
+                frameborder="0">
+            </iframe>
+        </div>`;
 }
 
 function createExcerpt(content) {
@@ -285,4 +463,142 @@ function simpleMarkdownToHtml(markdown) {
     html = html.replace(/<p>\s*<\/p>/g, '');
     
     return html;
+}
+
+function createPostElement(post) {
+    const postDiv = document.createElement('div');
+    postDiv.className = 'post';
+    
+    console.log('Creating post element for:', post.title);
+    
+    // Handle different media types
+    let mediaHtml = '';
+    
+    if (post.embed) {
+        console.log('Post has embed:', post.embed);
+        mediaHtml = createEmbedHtml(post.embed, post.embedType);
+    } else if (post.image) {
+        console.log('Post has image:', post.image);
+        mediaHtml = `<img src="${post.image}" alt="${post.title}" class="header-image" onload="console.log('Image loaded: ${post.image}')" onerror="console.error('Image failed to load: ${post.image}')">`;
+    }
+    
+    postDiv.innerHTML = `
+        <h2><a href="post.html?slug=${post.slug}" class="content-link">${post.title}</a></h2>
+        <div class="post-meta">
+            Published on ${formatDate(post.date)}
+        </div>
+        ${mediaHtml}
+        <div class="post-excerpt">
+            ${post.excerpt}
+        </div>
+        <div class="read-more-link">
+            <a href="post.html?slug=${post.slug}" class="content-link">Read more →</a>
+        </div>
+        <div class="post-tags">
+            ${post.tags.map(tag => `<a href="#" class="tag" onclick="filterByTag('${tag}')">${tag}</a>`).join('')}
+        </div>
+    `;
+    
+    return postDiv;
+}
+
+function createEmbedHtml(embedUrl, embedType) {
+    console.log('Creating embed for:', embedUrl, 'type:', embedType);
+    
+    // Auto-detect embed type if not specified
+    if (!embedType) {
+        if (embedUrl.includes('youtube.com') || embedUrl.includes('youtu.be')) {
+            embedType = 'youtube';
+        } else if (embedUrl.includes('spotify.com')) {
+            embedType = 'spotify';
+        } else if (embedUrl.includes('vimeo.com')) {
+            embedType = 'vimeo';
+        }
+    }
+    
+    console.log('Final embed type:', embedType);
+    
+    switch (embedType) {
+        case 'youtube':
+            return createYouTubeEmbed(embedUrl);
+        case 'spotify':
+            return createSpotifyEmbed(embedUrl);
+        case 'vimeo':
+            return createVimeoEmbed(embedUrl);
+        default:
+            console.log('Using generic iframe for:', embedUrl);
+            return `<iframe src="${embedUrl}" class="embed-iframe" allowfullscreen></iframe>`;
+    }
+}
+
+function createYouTubeEmbed(url) {
+    console.log('Creating YouTube embed for:', url);
+    
+    // Convert YouTube URL to embed format
+    let videoId = '';
+    
+    if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/')[1].split('?')[0];
+    } else if (url.includes('youtube.com/watch?v=')) {
+        videoId = url.split('v=')[1].split('&')[0];
+    }
+    
+    console.log('Extracted video ID:', videoId);
+    
+    if (videoId) {
+        const embedHtml = `
+            <div class="embed-container">
+                <iframe 
+                    src="https://www.youtube.com/embed/${videoId}" 
+                    class="embed-iframe"
+                    allowfullscreen
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+                </iframe>
+            </div>`;
+        
+        console.log('Generated YouTube embed HTML:', embedHtml);
+        return embedHtml;
+    }
+    
+    console.error('Could not extract video ID from:', url);
+    return `<p>Invalid YouTube URL: ${url}</p>`;
+}
+
+function createSpotifyEmbed(url) {
+    console.log('Creating Spotify embed for:', url);
+    
+    // Convert Spotify URL to embed format
+    const embedUrl = url.replace('open.spotify.com/', 'open.spotify.com/embed/').split('?')[0];
+    console.log('Spotify embed URL:', embedUrl);
+    
+    return `
+        <div class="embed-container spotify-embed">
+            <iframe 
+                src="${embedUrl}?utm_source=generator" 
+                class="embed-iframe"
+                allowfullscreen="" 
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                loading="lazy"
+                frameborder="0">
+            </iframe>
+        </div>`;
+}
+
+function createVimeoEmbed(url) {
+    console.log('Creating Vimeo embed for:', url);
+    
+    // Extract Vimeo video ID
+    const videoId = url.split('vimeo.com/')[1].split('?')[0];
+    console.log('Vimeo video ID:', videoId);
+    
+    return `
+        <div class="embed-container">
+            <iframe 
+                src="https://player.vimeo.com/video/${videoId}" 
+                class="embed-iframe"
+                allowfullscreen
+                frameborder="0">
+            </iframe>
+        </div>`;
 }

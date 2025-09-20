@@ -69,15 +69,28 @@ function createPostElement(post) {
     const postDiv = document.createElement('div');
     postDiv.className = 'post';
     
-    const imageHtml = post.image ? 
-        `<img src="${post.image}" alt="${post.title}" class="header-image">` : '';
+    console.log('Creating post element for:', post.title);
+    console.log('Post has embed:', post.embed);
+    console.log('Post has image:', post.image);
+    
+    // Handle different media types
+    let mediaHtml = '';
+    
+    if (post.embed) {
+        console.log('Creating embed HTML for:', post.embed);
+        mediaHtml = createEmbedHtml(post.embed, post.embedType);
+        console.log('Generated media HTML:', mediaHtml);
+    } else if (post.image) {
+        console.log('Creating image HTML for:', post.image);
+        mediaHtml = `<img src="${post.image}" alt="${post.title}" class="header-image" onload="console.log('Image loaded: ${post.image}')" onerror="console.error('Image failed to load: ${post.image}')">`;
+    }
     
     postDiv.innerHTML = `
         <h2><a href="post.html?slug=${post.slug}" class="content-link">${post.title}</a></h2>
         <div class="post-meta">
             Published on ${formatDate(post.date)}
         </div>
-        ${imageHtml}
+        ${mediaHtml}
         <div class="post-excerpt">
             ${post.excerpt}
         </div>
@@ -93,12 +106,54 @@ function createPostElement(post) {
 }
 
 function formatDate(dateString) {
+    console.log('Formatting date:', dateString, typeof dateString);
+    
+    if (!dateString) {
+        console.error('No date provided to formatDate');
+        return 'Unknown date';
+    }
+    
+    // Handle YYYY-MM-DD format specifically to avoid timezone issues
+    if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+        
+        // Create date in local timezone to avoid UTC conversion issues
+        const date = new Date(year, month - 1, day); // month is 0-indexed
+        
+        console.log('Parsed date components:', { year, month, day });
+        console.log('Created date object:', date);
+        
+        if (isNaN(date.getTime())) {
+            console.error('Invalid date components:', { year, month, day });
+            return 'Invalid date';
+        }
+        
+        const formatted = date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        console.log('Formatted date result:', formatted);
+        return formatted;
+    }
+    
+    // Fallback for other date formats
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
+    
+    if (isNaN(date.getTime())) {
+        console.error('Invalid date:', dateString);
+        return 'Invalid date';
+    }
+    
+    const formatted = date.toLocaleDateString('en-US', { 
         year: 'numeric', 
         month: 'long', 
         day: 'numeric' 
     });
+    
+    console.log('Formatted date result:', formatted);
+    return formatted;
 }
 
 function updatePagination() {
@@ -138,8 +193,17 @@ function updateTags() {
 
 function updateArchives() {
     const archivesContainer = document.getElementById('archives-container');
+    
     const months = [...new Set(allPosts.map(post => {
-        const date = new Date(post.date);
+        // Parse date in local timezone
+        let date;
+        if (typeof post.date === 'string' && post.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [year, month, day] = post.date.split('-').map(num => parseInt(num, 10));
+            date = new Date(year, month - 1, day);
+        } else {
+            date = new Date(post.date);
+        }
+        
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     }))];
     
@@ -161,7 +225,15 @@ function filterByTag(tag) {
 function filterByMonth(month) {
     currentFilter = { type: 'month', value: month };
     filteredPosts = allPosts.filter(post => {
-        const postDate = new Date(post.date);
+        // Parse date in local timezone
+        let postDate;
+        if (typeof post.date === 'string' && post.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [year, monthNum, day] = post.date.split('-').map(num => parseInt(num, 10));
+            postDate = new Date(year, monthNum - 1, day);
+        } else {
+            postDate = new Date(post.date);
+        }
+        
         const postMonth = `${postDate.getFullYear()}-${String(postDate.getMonth() + 1).padStart(2, '0')}`;
         return postMonth === month;
     });

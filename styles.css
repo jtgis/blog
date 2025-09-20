@@ -6,7 +6,7 @@
 
 body {
     font-family: 'Courier New', monospace;
-    background-color: #fafafa;
+    background-color: #F2F3F4;
     color: #333;
     line-height: 1.6;
 }
@@ -226,6 +226,39 @@ nav a:hover {
     text-decoration: underline;
 }
 
+/* Embed containers */
+.embed-container {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    margin: 20px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.embed-iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 8px;
+}
+
+/* Spotify embeds are typically shorter */
+.spotify-embed {
+    padding-bottom: 152px; /* Fixed height for Spotify */
+    height: 152px;
+}
+
+.spotify-embed .embed-iframe {
+    position: static;
+    height: 152px;
+}
+
 /* Mobile responsive design */
 @media (max-width: 768px) {
     .container {
@@ -269,6 +302,10 @@ nav a:hover {
     .pagination button {
         padding: 10px 16px;
         margin: 0 5px;
+    }
+    
+    .embed-container {
+        margin: 15px 0;
     }
 }
 
