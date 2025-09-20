@@ -1,7 +1,7 @@
 ---
 title: "Create Service Usage by Users Report in ArcGIS Enterprise 11.5"
 date: "2025-07-22"
-tags: ["video"]
+tags: ["video","arcgis enterprise"]
 embed: "https://www.youtube.com/watch?v=ANDD9huDCC4"
 embedType: "youtube"
 ---
