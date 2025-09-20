@@ -2,7 +2,7 @@
 title: "The Upgrade Compass: Finding Your North in Enterprise Versions"
 date: "2025-06-25"
 tags: ["video","webinar","arcgis enterprise"]
-embed: "[https://www.youtube.com/watch?v=ANDD9huDCC4](https://www.youtube.com/watch?v=0E8g0oWspzU)"
+embed: "https://www.youtube.com/watch?v=0E8g0oWspzU"
 embedType: "youtube"
 ---
 
