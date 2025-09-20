@@ -4,28 +4,51 @@ async function loadPostsFromGitHub() {
     try {
         console.log('Starting to load posts from GitHub...');
         console.log('Current URL:', window.location.href);
-        console.log('Attempting to fetch: posts/manifest.json');
         
-        const response = await fetch('posts/manifest.json');
-        console.log('Manifest response status:', response.status);
-        console.log('Manifest response ok:', response.ok);
+        // Try different path variations
+        const possibleManifestPaths = [
+            'posts/manifest.json',
+            './posts/manifest.json',
+            '/posts/manifest.json'
+        ];
         
-        if (!response.ok) {
-            throw new Error(`Manifest not found: ${response.status} - ${response.statusText}`);
+        let manifest = null;
+        let manifestPath = null;
+        
+        for (const path of possibleManifestPaths) {
+            try {
+                console.log('Trying manifest path:', path);
+                const response = await fetch(path);
+                console.log(`${path} response:`, response.status);
+                
+                if (response.ok) {
+                    manifest = await response.json();
+                    manifestPath = path;
+                    console.log('Manifest loaded from:', path);
+                    break;
+                }
+            } catch (error) {
+                console.log(`Failed to load from ${path}:`, error.message);
+            }
         }
         
-        const manifest = await response.json();
-        console.log('Manifest loaded successfully:', manifest);
+        if (!manifest) {
+            throw new Error('Could not load manifest from any path');
+        }
         
         if (!manifest.files || !Array.isArray(manifest.files)) {
             throw new Error('Invalid manifest format - missing files array');
         }
         
+        // Use the same base path that worked for manifest
+        const basePath = manifestPath.replace('manifest.json', '');
+        console.log('Using base path for posts:', basePath);
+        
         const posts = await Promise.all(
             manifest.files.map(async (filename) => {
                 try {
                     console.log('Loading post:', filename);
-                    const postUrl = `posts/${filename}`;
+                    const postUrl = `${basePath}${filename}`;
                     console.log('Fetching from:', postUrl);
                     
                     const postResponse = await fetch(postUrl);
