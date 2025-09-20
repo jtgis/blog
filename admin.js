@@ -1,62 +1,87 @@
-// GitHub repository settings - update these with your actual repo details
-const GITHUB_REPO_URL = 'https://github.com/jtgis/blog';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - jtgis</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><a href="index.html" style="color: #333; text-decoration: none;">jtgis</a></h1>
+            <nav>
+                <a href="index.html">Home</a>
+                <a href="about.html">About</a>
+                <a href="admin.html">Admin</a>
+            </nav>
+        </header>
+        
+        <main class="posts-section">
+            <h2>Blog Admin</h2>
+            
+                <h4>Add Post:</h4>
+                <p>
+                    <a href="https://github.com/jtgis/blog/new/main/posts" 
+                       target="_blank" 
+                       class="content-link" 
+                       style="background: #333; color: white; padding: 10px 20px; text-decoration: none; border-radius: 3px; display: inline-block; margin: 10px 0;">
+                        Create New Post on GitHub
+                    </a>
+                </p>
+            <div class="post">
+                
+                <div id="template-container" style="position: relative;">
+                    <pre id="post-template" class="content-code-block" style="cursor: pointer; user-select: all;" onclick="copyTemplate()">---
+title: "Your Post Title Here"
+date: "2025-09-19"
+tags: ["category1", "category2"]
+image: "https://example.com/optional-header-image.jpg"
+---
 
-function copyTemplate() {
-    const template = document.getElementById('post-template');
-    const feedback = document.getElementById('copy-feedback');
+# Your Main Heading
+
+Write your post content here using **Markdown**!
+
+You can use:
+- **Bold text**
+- *Italic text*
+- [Links](https://example.com)
+- `inline code`
+- Images: ![Alt text](https://example.com/image.jpg)
+
+## Subheadings
+
+More content here.
+
+```javascript
+// Code blocks work too
+function hello() {
+    console.log("Hello world!");
+}
+```
+
+## Another Section
+
+Keep writing your amazing content!</pre>
+                    <div id="copy-feedback" style="position: absolute; top: 10px; right: 10px; background: #333; color: white; padding: 5px 10px; border-radius: 3px; display: none;">
+                        Copied!
+                    </div>
+                </div>
+                
+                
+                
+                <h4>Current Posts:</h4>
+                <div id="current-posts">
+                    Loading current posts...
+                </div>
+                
+            </div>
+            
+        </main>
+    </div>
     
-    // Select the text
-    if (window.getSelection) {
-        const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(template);
-        selection.removeAllRanges();
-        selection.addRange(range);
-        
-        try {
-            // Copy to clipboard
-            document.execCommand('copy');
-            
-            // Show feedback
-            feedback.style.display = 'block';
-            setTimeout(() => {
-                feedback.style.display = 'none';
-            }, 2000);
-            
-            // Clear selection
-            selection.removeAllRanges();
-        } catch (err) {
-            console.error('Could not copy text: ', err);
-            alert('Could not copy automatically. Please select and copy manually.');
-        }
-    }
-}
-
-// Load and display current posts
-async function loadCurrentPosts() {
-    try {
-        const posts = await loadPostsFromGitHub();
-        const container = document.getElementById('current-posts');
-        
-        if (posts.length === 0) {
-            container.innerHTML = '<p>No posts found.</p>';
-            return;
-        }
-        
-        const postsList = posts.map(post => 
-            `<div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 3px;">
-                <strong>${post.title}</strong><br>
-                <small>File: ${post.slug}.md | Date: ${post.date} | Tags: ${post.tags.join(', ')}</small>
-            </div>`
-        ).join('');
-        
-        container.innerHTML = postsList;
-    } catch (error) {
-        document.getElementById('current-posts').innerHTML = '<p>Error loading posts.</p>';
-    }
-}
-
-// Initialize admin page
-document.addEventListener('DOMContentLoaded', function() {
-    loadCurrentPosts();
-});
+    <script src="posts-loader.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
