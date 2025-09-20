@@ -1,8 +1,8 @@
 ---
-title: "Check out this YouTube video"
+title: "Video"
 date: "2025-09-20"
-tags: ["video", "tutorial"]
-embed: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+tags: ["video"]
+embed: "https://www.youtube.com/watch?v=ANDD9huDCC4"
 embedType: "youtube"
 ---
 
