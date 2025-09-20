@@ -3,24 +3,27 @@
 // List your posts here - add new posts to this array
 const POST_FILES = [
     'post01.md',
-    'post02.md'
+    'post02.md',  // Added missing comma here
     // Add new posts here when you create them
 ];
 
 async function loadPostsFromGitHub() {
     try {
         console.log('Loading posts (simplified method)...');
+        console.log('POST_FILES array:', POST_FILES);
         
         const posts = await Promise.all(
             POST_FILES.map(async (filename) => {
                 try {
                     console.log('Loading post:', filename);
                     
-                    // Try different path variations
+                    // Try different path variations including absolute GitHub Pages paths
                     const possiblePaths = [
                         `posts/${filename}`,
                         `./posts/${filename}`,
-                        `/posts/${filename}`
+                        `/posts/${filename}`,
+                        `/blog/posts/${filename}`, // Add your repo name here if needed
+                        `/${filename}` // In case posts are in root
                     ];
                     
                     let content = null;
@@ -28,15 +31,19 @@ async function loadPostsFromGitHub() {
                     
                     for (const path of possiblePaths) {
                         try {
+                            console.log(`Trying path: ${path}`);
                             const response = await fetch(path);
+                            console.log(`Path ${path} response:`, response.status, response.statusText);
+                            
                             if (response.ok) {
                                 content = await response.text();
                                 successPath = path;
                                 console.log(`Successfully loaded ${filename} from:`, path);
+                                console.log(`Content preview:`, content.substring(0, 100));
                                 break;
                             }
                         } catch (error) {
-                            console.log(`Failed to load ${filename} from ${path}`);
+                            console.log(`Failed to load ${filename} from ${path}:`, error.message);
                         }
                     }
                     
@@ -57,7 +64,8 @@ async function loadPostsFromGitHub() {
         );
         
         const validPosts = posts.filter(post => post !== null).sort((a, b) => new Date(b.date) - new Date(a.date));
-        console.log(`Successfully loaded ${validPosts.length} posts`);
+        console.log(`Successfully loaded ${validPosts.length} posts out of ${POST_FILES.length} attempted`);
+        console.log('Valid posts:', validPosts.map(p => p.title));
         return validPosts;
         
     } catch (error) {
