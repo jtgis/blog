@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>jtgis Admin</h1>
+            <h1><a href="index.html" style="color: #333; text-decoration: none;">jtgis</a></h1>
             <nav>
                 <a href="index.html">Home</a>
                 <a href="about.html">About</a>
@@ -17,24 +17,64 @@
             </nav>
         </header>
         
-        <div class="main-content">
-            <main class="posts-section">
-                <!-- Login Form -->
-                <div id="login-form" class="post">
-                    <h2>Admin</h2>
-                    <form onsubmit="handleLogin(event)">
-                        <button type="submit" style="background-color: #333; color: white; padding: 10px 20px; border: none; font-family: 'Courier New', monospace; cursor: pointer;">Access GitHub CMS</button>
-                    </form>
-                </div>
+        <main class="posts-section">
+            <h2>Blog Admin</h2>
+            
+            <div class="post">
+                
+                <div id="template-container" style="position: relative;">
+                    <pre id="post-template" class="content-code-block" style="cursor: pointer; user-select: all;" onclick="copyTemplate()">---
+title: "Your Post Title Here"
+date: "2025-09-19"
+tags: ["category1", "category2"]
+image: "https://example.com/optional-header-image.jpg"
+---
 
-                <!-- Post Creation Instructions (hidden by default) -->
-                <div id="post-form" class="post" style="display: none;">
-                    <!-- Content will be filled by admin.js -->
+# Your Main Heading
+
+Write your post content here using **Markdown**!
+
+You can use:
+- **Bold text**
+- *Italic text*
+- [Links](https://example.com)
+- `inline code`
+- Images: ![Alt text](https://example.com/image.jpg)
+
+## Subheadings
+
+More content here.
+
+```javascript
+// Code blocks work too
+function hello() {
+    console.log("Hello world!");
+}
+```
+
+## Another Section
+
+Keep writing your amazing content!</pre>
+                    <div id="copy-feedback" style="position: absolute; top: 10px; right: 10px; background: #333; color: white; padding: 5px 10px; border-radius: 3px; display: none;">
+                        Copied!
+                    </div>
                 </div>
-            </main>
-        </div>
+                
+                <p>
+                    <a href="https://github.com/jtgis/blog/new/main/posts" 
+                       target="_blank" 
+                       class="content-link" 
+                       style="background: #333; color: white; padding: 10px 20px; text-decoration: none; border-radius: 3px; display: inline-block; margin: 10px 0;">
+                        📝 Create New Post on GitHub
+                    </a>
+                </p>
+                
+                
+            </div>
+        </main>
     </div>
-
+    
+    <script src="posts-loader.js"></script>
     <script src="admin.js"></script>
 </body>
 </html>

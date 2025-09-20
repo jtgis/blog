@@ -1,58 +1,65 @@
-// Simplified posts loader - no manifest file needed
-
-// List your posts here - add new posts to this array
-const POST_FILES = [
-    'post01.md',
-    'post02.md'
-];
+// Posts loader with manifest file
 
 async function loadPostsFromGitHub() {
     try {
-        console.log('Loading posts (simplified method)...');
-        console.log('POST_FILES array:', POST_FILES);
+        console.log('Loading posts with manifest...');
         console.log('Current domain:', window.location.hostname);
         
+        // First, load the manifest
+        const manifestPaths = [
+            'posts/manifest.json',
+            './posts/manifest.json',
+            '/posts/manifest.json',
+            'https://jtgis.ca/posts/manifest.json',
+            'https://raw.githubusercontent.com/jtgis/blog/main/posts/manifest.json'
+        ];
+        
+        let manifest = null;
+        let workingBasePath = null;
+        
+        for (const path of manifestPaths) {
+            try {
+                console.log(`Trying manifest path: ${path}`);
+                const response = await fetch(path);
+                console.log(`Manifest ${path} response:`, response.status);
+                
+                if (response.ok) {
+                    manifest = await response.json();
+                    // Extract the base path for posts
+                    workingBasePath = path.replace('manifest.json', '');
+                    console.log('Manifest loaded from:', path);
+                    console.log('Using base path:', workingBasePath);
+                    break;
+                }
+            } catch (error) {
+                console.log(`Failed to load manifest from ${path}:`, error.message);
+            }
+        }
+        
+        if (!manifest || !manifest.files) {
+            throw new Error('Could not load manifest or invalid format');
+        }
+        
+        console.log('Manifest files:', manifest.files);
+        
+        // Now load each post using the working base path
         const posts = await Promise.all(
-            POST_FILES.map(async (filename) => {
+            manifest.files.map(async (filename) => {
                 try {
                     console.log('Loading post:', filename);
                     
-                    // For custom domains, the paths are different
-                    const possiblePaths = [
-                        `posts/${filename}`,      // Relative path (most likely to work)
-                        `./posts/${filename}`,    // Explicit relative path
-                        `/posts/${filename}`,     // Absolute path from domain root
-                        `https://jtgis.ca/posts/${filename}`, // Full URL
-                        `https://raw.githubusercontent.com/jtgis/blog/main/posts/${filename}` // Direct GitHub raw content
-                    ];
+                    const postPath = workingBasePath + filename;
+                    console.log(`Loading from: ${postPath}`);
                     
-                    let content = null;
-                    let successPath = null;
+                    const response = await fetch(postPath);
+                    console.log(`Post ${filename} response:`, response.status);
                     
-                    for (const path of possiblePaths) {
-                        try {
-                            console.log(`Trying path: ${path}`);
-                            const response = await fetch(path);
-                            console.log(`Path ${path} response:`, response.status, response.statusText);
-                            
-                            if (response.ok) {
-                                content = await response.text();
-                                successPath = path;
-                                console.log(`Successfully loaded ${filename} from:`, path);
-                                console.log(`Content length:`, content.length);
-                                console.log(`Content preview:`, content.substring(0, 100));
-                                break;
-                            }
-                        } catch (error) {
-                            console.log(`Failed to load ${filename} from ${path}:`, error.message);
-                        }
+                    if (!response.ok) {
+                        throw new Error(`Post not found: ${filename} - ${response.status}`);
                     }
                     
-                    if (!content) {
-                        console.error(`Could not load ${filename} from any path`);
-                        console.error('Attempted paths:', possiblePaths);
-                        return null;
-                    }
+                    const content = await response.text();
+                    console.log(`Post ${filename} loaded, length:`, content.length);
                     
                     const parsedPost = parseMarkdownPost(content, filename);
                     console.log(`Parsed ${filename}:`, parsedPost.title);
@@ -66,7 +73,7 @@ async function loadPostsFromGitHub() {
         );
         
         const validPosts = posts.filter(post => post !== null).sort((a, b) => new Date(b.date) - new Date(a.date));
-        console.log(`Successfully loaded ${validPosts.length} posts out of ${POST_FILES.length} attempted`);
+        console.log(`Successfully loaded ${validPosts.length} posts out of ${manifest.files.length} attempted`);
         
         if (validPosts.length > 0) {
             console.log('Valid posts:', validPosts.map(p => p.title));
