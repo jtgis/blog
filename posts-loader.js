@@ -1,22 +1,22 @@
-// Posts loader with manifest file
+// Posts loader with manifest file - GitHub Pages optimized
 
 async function loadPostsFromGitHub() {
     try {
         console.log('Loading posts with manifest...');
         console.log('Current domain:', window.location.hostname);
         
-        // First, load the manifest with cache busting
+        // For GitHub Pages with custom domain, prioritize GitHub raw URLs
         const cacheBuster = '?t=' + Date.now();
         const manifestPaths = [
+            `https://raw.githubusercontent.com/jtgis/blog/main/posts/manifest.json${cacheBuster}`,
             `posts/manifest.json${cacheBuster}`,
             `./posts/manifest.json${cacheBuster}`,
             `/posts/manifest.json${cacheBuster}`,
-            `https://jtgis.ca/posts/manifest.json${cacheBuster}`,
-            `https://raw.githubusercontent.com/jtgis/blog/main/posts/manifest.json${cacheBuster}`
+            `https://jtgis.ca/posts/manifest.json${cacheBuster}`
         ];
         
         let manifest = null;
-        let workingBasePath = null;
+        let useGitHubRaw = false;
         
         for (const path of manifestPaths) {
             try {
@@ -36,9 +36,9 @@ async function loadPostsFromGitHub() {
                     manifest = JSON.parse(manifestText);
                     console.log('Parsed manifest:', manifest);
                     
-                    // Extract the base path for posts
-                    workingBasePath = path.replace('manifest.json' + cacheBuster, '');
-                    console.log('Using base path:', workingBasePath);
+                    // If we successfully loaded from GitHub raw, use that for posts too
+                    useGitHubRaw = path.includes('raw.githubusercontent.com');
+                    console.log('Will use GitHub raw for posts:', useGitHubRaw);
                     break;
                 }
             } catch (error) {
@@ -60,7 +60,7 @@ async function loadPostsFromGitHub() {
         // Load each post
         const posts = await Promise.all(
             manifest.files.map(async (filename) => {
-                return await loadSinglePostFile(filename, workingBasePath);
+                return await loadSinglePostFile(filename, useGitHubRaw);
             })
         );
         
@@ -75,18 +75,23 @@ async function loadPostsFromGitHub() {
     }
 }
 
-async function loadSinglePostFile(filename, basePath) {
+async function loadSinglePostFile(filename, preferGitHubRaw = false) {
     try {
         console.log('Loading post:', filename);
         
-        // Try multiple paths for each post file
-        const postPaths = [
-            `${basePath}${filename}?t=${Date.now()}`,
+        // Create paths with GitHub raw prioritized for custom domains
+        const postPaths = preferGitHubRaw ? [
+            `https://raw.githubusercontent.com/jtgis/blog/main/posts/${filename}?t=${Date.now()}`,
             `posts/${filename}?t=${Date.now()}`,
             `./posts/${filename}?t=${Date.now()}`,
             `/posts/${filename}?t=${Date.now()}`,
-            `https://jtgis.ca/posts/${filename}?t=${Date.now()}`,
-            `https://raw.githubusercontent.com/jtgis/blog/main/posts/${filename}?t=${Date.now()}`
+            `https://jtgis.ca/posts/${filename}?t=${Date.now()}`
+        ] : [
+            `posts/${filename}?t=${Date.now()}`,
+            `./posts/${filename}?t=${Date.now()}`,
+            `/posts/${filename}?t=${Date.now()}`,
+            `https://raw.githubusercontent.com/jtgis/blog/main/posts/${filename}?t=${Date.now()}`,
+            `https://jtgis.ca/posts/${filename}?t=${Date.now()}`
         ];
         
         for (const postPath of postPaths) {
