@@ -2,26 +2,46 @@
 
 async function loadPostsFromGitHub() {
     try {
-        console.log('Loading posts from GitHub...');
+        console.log('Starting to load posts from GitHub...');
+        console.log('Current URL:', window.location.href);
+        console.log('Attempting to fetch: posts/manifest.json');
+        
         const response = await fetch('posts/manifest.json');
+        console.log('Manifest response status:', response.status);
+        console.log('Manifest response ok:', response.ok);
         
         if (!response.ok) {
-            throw new Error(`Manifest not found: ${response.status}`);
+            throw new Error(`Manifest not found: ${response.status} - ${response.statusText}`);
         }
         
         const manifest = await response.json();
-        console.log('Manifest loaded:', manifest);
+        console.log('Manifest loaded successfully:', manifest);
+        
+        if (!manifest.files || !Array.isArray(manifest.files)) {
+            throw new Error('Invalid manifest format - missing files array');
+        }
         
         const posts = await Promise.all(
             manifest.files.map(async (filename) => {
                 try {
                     console.log('Loading post:', filename);
-                    const postResponse = await fetch(`posts/${filename}`);
+                    const postUrl = `posts/${filename}`;
+                    console.log('Fetching from:', postUrl);
+                    
+                    const postResponse = await fetch(postUrl);
+                    console.log(`Post ${filename} response status:`, postResponse.status);
+                    
                     if (!postResponse.ok) {
-                        throw new Error(`Post not found: ${filename}`);
+                        throw new Error(`Post not found: ${filename} - ${postResponse.status} ${postResponse.statusText}`);
                     }
+                    
                     const postContent = await postResponse.text();
-                    return parseMarkdownPost(postContent, filename);
+                    console.log(`Post ${filename} content length:`, postContent.length);
+                    
+                    const parsedPost = parseMarkdownPost(postContent, filename);
+                    console.log(`Parsed post ${filename}:`, parsedPost);
+                    
+                    return parsedPost;
                 } catch (error) {
                     console.error(`Failed to load post: ${filename}`, error);
                     return null;
@@ -30,14 +50,39 @@ async function loadPostsFromGitHub() {
         );
         
         const validPosts = posts.filter(post => post !== null).sort((a, b) => new Date(b.date) - new Date(a.date));
-        console.log('Valid posts loaded:', validPosts);
+        console.log('Valid posts loaded:', validPosts.length, validPosts);
         return validPosts;
         
     } catch (error) {
         console.error('Error loading posts from GitHub:', error);
+        console.log('Falling back to sample posts');
         return [];
     }
 }
+
+// Test function to check if files exist
+async function testFileAccess() {
+    const filesToTest = [
+        'posts/manifest.json',
+        'posts/post01.md', 
+        'posts/post02.md'
+    ];
+    
+    for (const file of filesToTest) {
+        try {
+            const response = await fetch(file);
+            console.log(`${file}: ${response.status} ${response.statusText}`);
+        } catch (error) {
+            console.error(`${file}: Error -`, error);
+        }
+    }
+}
+
+// Run test on page load
+window.addEventListener('load', () => {
+    console.log('Running file access test...');
+    testFileAccess();
+});
 
 function parseMarkdownPost(content, filename) {
     console.log('Parsing post:', filename);

@@ -178,13 +178,29 @@ function clearFilter() {
 
 // Initialize the blog
 document.addEventListener('DOMContentLoaded', async function() {
-    // Load posts from GitHub first, fall back to sample posts
-    const githubPosts = await loadPostsFromGitHub();
-    allPosts = githubPosts.length > 0 ? githubPosts : samplePosts;
-    console.log('Loaded posts:', allPosts);
+    console.log('DOM loaded, initializing blog...');
     
-    // Handle URL parameters
-    handleUrlParameters();
-    
-    loadPosts(1);
+    try {
+        // Load posts from GitHub first, fall back to sample posts
+        const githubPosts = await loadPostsFromGitHub();
+        
+        if (githubPosts.length > 0) {
+            console.log('Using GitHub posts:', githubPosts.length);
+            allPosts = githubPosts;
+        } else {
+            console.log('Using sample posts');
+            allPosts = samplePosts;
+        }
+        
+        console.log('Final posts array:', allPosts);
+        
+        // Handle URL parameters
+        handleUrlParameters();
+        
+        loadPosts(1);
+    } catch (error) {
+        console.error('Error during initialization:', error);
+        allPosts = samplePosts;
+        loadPosts(1);
+    }
 });
