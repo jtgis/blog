@@ -9,4 +9,4 @@ image: "https://raw.githubusercontent.com/jtgis/blog/main/posts/learningschedule
 
 My attempt at a minimalist learning management system for home schooling.
 
-[Learning Scheduler](https://github.com/jtgis/learningscheduler)
+[Learning Scheduler GitHub](https://github.com/jtgis/learningscheduler)
