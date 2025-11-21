@@ -1,7 +1,7 @@
 ---
 title: "Your Post Title Here"
 date: "1970-01-02"
-tags: ["category1", "category2"]
+tags: ["meta"]
 image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d"
 embed: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 embedType: "youtube"
