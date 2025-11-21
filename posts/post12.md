@@ -1,5 +1,5 @@
 ---
-title: "Your Post Title Here"
+title: "Esri Canada User Conference Presentation on ArcGIS Enterprise and ArcGIS Online"
 date: "2025-11-03"
 tags: ["gis", "presentation", "conference"]
 image: "https://raw.githubusercontent.com/jtgis/blog/main/posts/agolagepresentation.png"
