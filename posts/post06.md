@@ -1,7 +1,7 @@
 ---
 title: "Learning Scheduler"
 date: "2025-09-23"
-tags: ["information system", "home school"]
+tags: ["information system","home school","node","react","css","html","javascript"]
 image: "https://raw.githubusercontent.com/jtgis/blog/main/posts/learningscheduler.png"
 ---
 
