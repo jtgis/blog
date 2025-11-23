@@ -1,7 +1,7 @@
 ---
 title: "NBFireMap"
 date: "2025-08-10"
-tags: ["gis","html","js","css","wildfire","new brunswick","web map"]
+tags: ["gis","html","javascript","css","wildfire","new brunswick","web map"]
 image: "https://raw.githubusercontent.com/jtgis/blog/main/posts/nbfiremap.png"
 ---
 
