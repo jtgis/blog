@@ -1,7 +1,7 @@
 ---
 title: "Minimal Blog"
 date: "2025-09-20"
-tags: ["blog", "meta"]
+tags: ["blog", "meta","html","css","javascript"]
 image: "https://raw.githubusercontent.com/jtgis/blog/main/posts/blog.png"
 ---
 
