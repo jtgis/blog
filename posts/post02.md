@@ -1,7 +1,7 @@
 ---
 title: "Creating a User Service Usage Report in ArcGIS Enterprise"
 date: "2025-07-22"
-tags: ["video","gis","tutorial","arcgis enterprise"]
+tags: ["video","gis","tutorial","arcgis enterprise","geosnap"]
 embed: "https://www.youtube.com/watch?v=ANDD9huDCC4"
 embedType: "youtube"
 ---
