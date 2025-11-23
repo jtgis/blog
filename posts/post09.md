@@ -1,7 +1,7 @@
 ---
 title: "Creating an Oriented Imagery Dataset for ArcGIS Enterprise"
 date: "2025-10-28"
-tags: ["gis", "photogrammetry", "video", "tutorial","arcgis pro","arcgis enterprise"]
+tags: ["gis", "photogrammetry", "video", "tutorial","arcgis pro","arcgis enterprise","drones","geosnap"]
 embed: "https://www.youtube.com/watch?v=uac-cTtttUk"
 embedType: "youtube"
 ---
