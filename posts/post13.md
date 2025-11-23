@@ -1,5 +1,5 @@
 ---
-title: "Esri Canada User Conference Presentation on ArcGIS Enterprise"
+title: "Esri Canada User Conference Toronto 2025: ArcGIS Enterprise"
 date: "2025-11-04"
 tags: ["gis", "presentation", "conference","arcgis enterprise"]
 image: "https://raw.githubusercontent.com/jtgis/blog/main/posts/agepresentation.png"
