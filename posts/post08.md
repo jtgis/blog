@@ -1,7 +1,7 @@
 ---
 title: "SiteScan Python API Examples"
 date: "2025-10-28"
-tags: ["photogrammetry", "gis", "python"]
+tags: ["photogrammetry","gis","python","drones"]
 ---
 
 # SiteScan Python API Examples
