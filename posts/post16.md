@@ -1,7 +1,7 @@
 ---
 title: "Creating the Fundy Footpath Trail Map with QGIS"
 date: "2013-01-01"
-tags: ["gis","qgis","hiking","cartography","gps","data collection"]
+tags: ["gis","qgis","hiking","cartography","gps","data collection","new brunswick"]
 image: "https://raw.githubusercontent.com/jtgis/blog/main/posts/fundyfootpath.jpg"
 ---
 
