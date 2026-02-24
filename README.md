@@ -2,6 +2,8 @@
 
 A clean, minimal blog built with pure HTML, CSS, and JavaScript. No frameworks, no build process - just simple, fast, and GitHub Pages compatible.
 
+[The Blog](https://blog.jtgis.ca/)
+
 ## Features
 
 - Markdown support - Write posts in Markdown
@@ -226,5 +228,6 @@ const apiUrl = 'https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO/contents/po
 ```
 
 ## License
+
 
 MIT License - feel free to use this for any purpose.
